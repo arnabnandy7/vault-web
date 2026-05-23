@@ -6,6 +6,7 @@ import { AuthService } from '../services/auth.service';
 import {
   EXTERNAL_DOMAIN_LINKS,
   ExternalDomainLink,
+  resolveExternalLinkUrl,
 } from '../config/external-domains.config';
 
 @Component({
@@ -61,6 +62,30 @@ export class NavbarComponent {
 
   get hasExternalLinks(): boolean {
     return this.externalDomainLinks.length > 0;
+  }
+
+  externalLinkUrl(link: ExternalDomainLink): string {
+    return resolveExternalLinkUrl(link, this.authService.getToken());
+  }
+
+  openExternalLink(event: Event, link: ExternalDomainLink): void {
+    this.closeMobileMenu();
+    this.closeDomainDropdown(event);
+
+    if (!link.forwardVaultWebToken || !this.authService.getToken()) {
+      return;
+    }
+
+    event.preventDefault();
+    this.authService.refresh().subscribe({
+      next: (res) => {
+        this.authService.saveToken(res.token);
+        window.location.assign(resolveExternalLinkUrl(link, res.token));
+      },
+      error: () => {
+        window.location.assign(this.externalLinkUrl(link));
+      },
+    });
   }
 
   logout(): void {

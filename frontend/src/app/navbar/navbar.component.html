@@ -28,9 +28,9 @@
         >
           <a
             *ngFor="let link of externalDomainLinks"
-            [href]="link.url"
+            [href]="externalLinkUrl(link)"
             class="logo-dropdown-link"
-            (click)="closeDomainDropdown($event)"
+            (click)="openExternalLink($event, link)"
           >
             {{ link.name }}
           </a>
@@ -141,9 +141,9 @@
       <p class="mobile-external-title">External Links</p>
       <a
         *ngFor="let link of externalDomainLinks"
-        [href]="link.url"
+        [href]="externalLinkUrl(link)"
         class="mobile-link block py-2"
-        (click)="closeMobileMenu()"
+        (click)="openExternalLink($event, link)"
       >
         {{ link.name }}
       </a>

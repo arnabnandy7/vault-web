@@ -10,6 +10,17 @@ The external links are loaded at runtime from: `public/runtime-config.local.js` 
 
 Therefore edit `public/runtime-config.local.js` to add your own external links.
 
+Links can opt in to forwarding the current Vault Web access token in the URL
+fragment. The target service must explicitly support that handoff:
+
+```js
+{
+  name: "Habits",
+  url: "http://localhost:9001/vault-web-login",
+  forwardVaultWebToken: true,
+}
+```
+
 ## Development server
 
 To start a local development server, run:
