@@ -173,6 +173,10 @@ The external links are loaded at runtime from: `frontend/public/runtime-config.l
 
 Therefore edit `public/runtime-config.local.js` to add your own external links.
 
+An external service that explicitly supports Vault Web JWT handoff can opt in
+with `forwardVaultWebToken: true`. Vault Web then appends the current access
+token to that link's URL fragment instead of sending it to every external link.
+
 ---
 
 ## Notes

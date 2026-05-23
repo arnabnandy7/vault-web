@@ -1,6 +1,7 @@
 export interface ExternalDomainLink {
   name: string;
   url: string;
+  forwardVaultWebToken: boolean;
 }
 
 declare global {
@@ -9,17 +10,25 @@ declare global {
   }
 }
 
-function isValidLink(value: unknown): value is { name: string; url: string } {
+function isValidLink(
+  value: unknown,
+): value is { name: string; url: string; forwardVaultWebToken?: boolean } {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
 
-  const candidate = value as { name?: unknown; url?: unknown };
+  const candidate = value as {
+    name?: unknown;
+    url?: unknown;
+    forwardVaultWebToken?: unknown;
+  };
   return (
     typeof candidate.name === 'string' &&
     candidate.name.trim().length > 0 &&
     typeof candidate.url === 'string' &&
-    candidate.url.trim().length > 0
+    candidate.url.trim().length > 0 &&
+    (candidate.forwardVaultWebToken === undefined ||
+      typeof candidate.forwardVaultWebToken === 'boolean')
   );
 }
 
@@ -32,8 +41,21 @@ function resolveExternalLinks(): ExternalDomainLink[] {
   return links.filter(isValidLink).map((link) => ({
     name: link.name.trim(),
     url: link.url.trim(),
+    forwardVaultWebToken: link.forwardVaultWebToken === true,
   }));
 }
 
 export const EXTERNAL_DOMAIN_LINKS: ExternalDomainLink[] =
   resolveExternalLinks();
+
+export function resolveExternalLinkUrl(
+  link: ExternalDomainLink,
+  vaultWebToken: string | null,
+): string {
+  if (!link.forwardVaultWebToken || !vaultWebToken) {
+    return link.url;
+  }
+
+  const separator = link.url.includes('#') ? '&' : '#';
+  return `${link.url}${separator}vaultWebToken=${encodeURIComponent(vaultWebToken)}`;
+}
