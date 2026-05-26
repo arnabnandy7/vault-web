@@ -56,7 +56,7 @@ export class LoginComponent implements OnInit {
         const externalLink = EXTERNAL_DOMAIN_LINKS.find(
           (link) => link.name === externalLinkName,
         );
-        if (externalLink?.forwardVaultWebToken) {
+        if (externalLink) {
           window.location.assign(
             resolveExternalLinkUrl(externalLink, res.token),
           );
