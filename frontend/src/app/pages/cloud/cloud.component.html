@@ -43,6 +43,19 @@
             [appendTo]="'body'"
             [model]="createMenuItems"
           ></p-menu>
+          <p-button
+            label="Sort"
+            icon="pi pi-sort-alt"
+            [outlined]="true"
+            styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
+            (click)="toggleCreateMenu($event, sortMenu)"
+          ></p-button>
+          <p-menu
+            #sortMenu
+            [popup]="true"
+            [appendTo]="'body'"
+            [model]="sortMenuItems"
+          ></p-menu>
           <input
             #fileUploadInput
             type="file"
