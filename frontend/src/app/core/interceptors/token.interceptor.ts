@@ -1,4 +1,9 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  HttpHandlerFn,
+  HttpInterceptorFn,
+  HttpRequest,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError, ReplaySubject } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -21,11 +26,7 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         if (error.status === 401) {
-          // If the refresh token request itself fails, we must logout.
-          if (req.url.includes('/refresh')) {
-            authService.logout();
-          }
-          // Otherwise, just pass the 401 through.
+          return handleUnauthorized(req, next, authService, error);
         }
         return throwError(() => error);
       }),
@@ -57,50 +58,58 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      // If the refresh endpoint returns 401, the refresh token is invalid/expired.
-      if (req.url.includes('/refresh')) {
-        authService.logout();
-        return throwError(() => error);
-      }
-
-      // Handle 401 by attempting to refresh the token
-      if (isRefreshing) {
-        return refreshTokenSubject.pipe(
-          switchMap((token) => {
-            const retryReq = req.clone({
-              setHeaders: { Authorization: `Bearer ${token}` },
-            });
-            return next(retryReq);
-          }),
-        );
-      }
-
-      isRefreshing = true;
-      refreshTokenSubject = new ReplaySubject<string>(1);
-
-      return authService.refresh().pipe(
-        switchMap((res) => {
-          isRefreshing = false;
-          authService.saveToken(res.token);
-          refreshTokenSubject.next(res.token);
-          refreshTokenSubject.complete();
-
-          const retryReq = req.clone({
-            setHeaders: { Authorization: `Bearer ${res.token}` },
-          });
-
-          return next(retryReq);
-        }),
-        catchError((refreshErr) => {
-          isRefreshing = false;
-          refreshTokenSubject.error(refreshErr);
-          authService.logout();
-          return throwError(() => refreshErr);
-        }),
-      );
+      return handleUnauthorized(req, next, authService, error);
     }),
   );
 };
+
+// Consistently handle a 401 for any request: refresh the token once and retry,
+// or clear the session and redirect to /login when the refresh fails. Requests
+// that carried an explicit Authorization header used to fall through here without
+// a refresh or logout, leaving the user on a broken, unauthenticated page.
+function handleUnauthorized(
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  authService: AuthService,
+  error: HttpErrorResponse,
+) {
+  // If the refresh endpoint itself returned 401, the refresh token is invalid.
+  if (req.url.includes('/auth/refresh')) {
+    authService.logout();
+    return throwError(() => error);
+  }
+
+  // A refresh is already in flight: wait for it and retry with the new token.
+  if (isRefreshing) {
+    return refreshTokenSubject.pipe(
+      switchMap((token) =>
+        next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })),
+      ),
+    );
+  }
+
+  isRefreshing = true;
+  refreshTokenSubject = new ReplaySubject<string>(1);
+
+  return authService.refresh().pipe(
+    switchMap((res) => {
+      isRefreshing = false;
+      authService.saveToken(res.token);
+      refreshTokenSubject.next(res.token);
+      refreshTokenSubject.complete();
+
+      return next(
+        req.clone({ setHeaders: { Authorization: `Bearer ${res.token}` } }),
+      );
+    }),
+    catchError((refreshErr) => {
+      isRefreshing = false;
+      refreshTokenSubject.error(refreshErr);
+      authService.logout();
+      return throwError(() => refreshErr);
+    }),
+  );
+}
 
 function isBackendUnavailable(error: HttpErrorResponse): boolean {
   return error.status === 0;
