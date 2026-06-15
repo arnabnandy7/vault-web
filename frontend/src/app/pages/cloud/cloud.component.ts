@@ -32,6 +32,14 @@ interface CloudEntry {
   typeLabel: string;
 }
 
+type CloudSort =
+  | 'name,asc'
+  | 'name,desc'
+  | 'lastModifiedAt,asc'
+  | 'lastModifiedAt,desc'
+  | 'size,asc'
+  | 'size,desc';
+
 @Component({
   selector: 'app-cloud',
   standalone: true,
@@ -77,7 +85,7 @@ export class CloudComponent implements OnInit {
 
   createMenuItems: MenuItem[] = [];
   sortMenuItems: MenuItem[] = [];
-  sort = 'name,asc';
+  sort: CloudSort = 'name,asc';
   entries: CloudEntry[] = [];
   downloadingPaths = new Set<string>();
 
@@ -232,7 +240,7 @@ export class CloudComponent implements OnInit {
     this.loadFolderContent(relativePath, page);
   }
 
-  setSort(sort: string) {
+  setSort(sort: CloudSort) {
     if (this.sort === sort) return;
     this.sort = sort;
     this.contentFirst = 0;
@@ -340,7 +348,7 @@ export class CloudComponent implements OnInit {
     return relative || '/';
   }
 
-  toggleCreateMenu(event: Event, menu: Menu) {
+  toggleMenu(event: Event, menu: Menu) {
     menu.toggle(event);
   }
 

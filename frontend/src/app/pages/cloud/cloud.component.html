@@ -35,7 +35,7 @@
             icon="pi pi-plus"
             [outlined]="true"
             styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
-            (click)="toggleCreateMenu($event, createMenu)"
+            (click)="toggleMenu($event, createMenu)"
           ></p-button>
           <p-menu
             #createMenu
@@ -48,7 +48,7 @@
             icon="pi pi-sort-alt"
             [outlined]="true"
             styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
-            (click)="toggleCreateMenu($event, sortMenu)"
+            (click)="toggleMenu($event, sortMenu)"
           ></p-button>
           <p-menu
             #sortMenu
