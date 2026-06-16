@@ -133,6 +133,6 @@ function isExcludedFromErrorPage(url: string): boolean {
   return (
     url.includes('/auth/refresh') ||
     url.includes('/auth/logout') ||
-    url.includes('/devices/')
+    url.includes('/devices')
   );
 }
