@@ -7,9 +7,11 @@ import { CloudComponent } from './pages/cloud/cloud.component';
 import { TrashComponent } from './pages/cloud/trash/trash.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { PasswordManagerComponent } from './pages/password-manager/password-manager.component';
+import { NotFoundComponent } from './pages/not-found/not-found.component';
+import { ServerErrorComponent } from './pages/server-error/server-error.component';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', component: LoginComponent, data: { hideNavbar: true } },
   { path: '', component: HomeComponent, canActivate: [authGuard] },
   {
     path: 'dashboard',
@@ -22,8 +24,22 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   { path: 'password-manager', redirectTo: 'passwords', pathMatch: 'full' },
-  { path: 'register', component: RegisterComponent },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    data: { hideNavbar: true },
+  },
   { path: 'cloud', component: CloudComponent, canActivate: [authGuard] },
   { path: 'cloud/trash', component: TrashComponent, canActivate: [authGuard] },
-  { path: '**', redirectTo: 'login' },
+  {
+    path: 'not-found',
+    component: NotFoundComponent,
+    data: { hideNavbar: true },
+  },
+  {
+    path: 'error',
+    component: ServerErrorComponent,
+    data: { hideNavbar: true },
+  },
+  { path: '**', component: NotFoundComponent, data: { hideNavbar: true } },
 ];
