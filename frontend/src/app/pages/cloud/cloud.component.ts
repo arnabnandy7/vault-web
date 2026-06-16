@@ -32,6 +32,14 @@ interface CloudEntry {
   typeLabel: string;
 }
 
+type CloudSort =
+  | 'name,asc'
+  | 'name,desc'
+  | 'lastModifiedAt,asc'
+  | 'lastModifiedAt,desc'
+  | 'size,asc'
+  | 'size,desc';
+
 @Component({
   selector: 'app-cloud',
   standalone: true,
@@ -76,6 +84,8 @@ export class CloudComponent implements OnInit {
   selectedFileForRename: FileDto | null = null;
 
   createMenuItems: MenuItem[] = [];
+  sortMenuItems: MenuItem[] = [];
+  sort: CloudSort = 'name,asc';
   entries: CloudEntry[] = [];
   downloadingPaths = new Set<string>();
 
@@ -125,6 +135,38 @@ export class CloudComponent implements OnInit {
         command: () => this.openFileUploadDialog(),
       },
     ];
+    this.sortMenuItems = [
+      {
+        label: 'Name (A–Z)',
+        icon: 'pi pi-sort-alpha-down',
+        command: () => this.setSort('name,asc'),
+      },
+      {
+        label: 'Name (Z–A)',
+        icon: 'pi pi-sort-alpha-up-alt',
+        command: () => this.setSort('name,desc'),
+      },
+      {
+        label: 'Newest first',
+        icon: 'pi pi-sort-amount-down',
+        command: () => this.setSort('lastModifiedAt,desc'),
+      },
+      {
+        label: 'Oldest first',
+        icon: 'pi pi-sort-amount-up',
+        command: () => this.setSort('lastModifiedAt,asc'),
+      },
+      {
+        label: 'Largest first',
+        icon: 'pi pi-sort-amount-down',
+        command: () => this.setSort('size,desc'),
+      },
+      {
+        label: 'Smallest first',
+        icon: 'pi pi-sort-amount-up',
+        command: () => this.setSort('size,asc'),
+      },
+    ];
     this.loadRootFolder();
   }
 
@@ -161,7 +203,7 @@ export class CloudComponent implements OnInit {
     // quickly, an earlier (slower) request must not overwrite newer state.
     const requestId = ++this.contentRequestId;
     this.cloudService
-      .getFolderContent(relativePath, page, this.pageSize)
+      .getFolderContent(relativePath, page, this.pageSize, this.sort)
       .subscribe({
         next: (contentPage) => {
           if (requestId !== this.contentRequestId) return;
@@ -196,6 +238,17 @@ export class CloudComponent implements OnInit {
       this.currentFolder?.path || this.rootPath,
     );
     this.loadFolderContent(relativePath, page);
+  }
+
+  setSort(sort: CloudSort) {
+    if (this.sort === sort) return;
+    this.sort = sort;
+    this.contentFirst = 0;
+    this.loading = true;
+    const relativePath = this.getRelativePath(
+      this.currentFolder?.path || this.rootPath,
+    );
+    this.loadFolderContent(relativePath, 0);
   }
 
   loadRootFolder() {
@@ -295,7 +348,7 @@ export class CloudComponent implements OnInit {
     return relative || '/';
   }
 
-  toggleCreateMenu(event: Event, menu: Menu) {
+  toggleMenu(event: Event, menu: Menu) {
     menu.toggle(event);
   }
 
