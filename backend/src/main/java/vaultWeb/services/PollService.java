@@ -15,6 +15,7 @@ import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.exceptions.notfound.PollNotFoundException;
+import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
 import vaultWeb.models.*;
 import vaultWeb.models.enums.MessageType;
 import vaultWeb.repositories.*;
@@ -85,6 +86,7 @@ public class PollService {
   }
 
   private void validateContextAccess(PollContext pollContext, User user) {
+    String username = user.getUsername();
     if (pollContext.isGroup()) {
       boolean isNotGroupMember =
           groupMemberRepository.findByGroupAndUser(pollContext.group(), user).isEmpty();
@@ -92,10 +94,11 @@ public class PollService {
         throw new NotMemberException(pollContext.group().getId(), user.getId());
       }
     } else if (pollContext.isPrivateChat()) {
-      PrivateChat privateChat = pollContext.privateChat();
+      PrivateChat chat = pollContext.privateChat();
       boolean isChatParticipant =
-          (privateChat.getUser1().getId().equals(user.getId()))
-              || (privateChat.getUser2().getId().equals(user.getId()));
+          (chat.getUser1() != null && username.equals(chat.getUser1().getUsername()))
+              || (chat.getUser2() != null && username.equals(chat.getUser2().getUsername()));
+
       if (!isChatParticipant) {
         throw new UnauthorizedException("User is not a participant in this chat");
       }
@@ -132,9 +135,10 @@ public class PollService {
             .findById(privateChatId)
             .orElseThrow(
                 () ->
-                    new GroupNotFoundException(
+                    new PrivateChatNotFoundException(
                         "Private chat with id " + privateChatId + " not found"));
 
+    validateContextAccess(new PollContext(null, privateChat), currentUser);
     return pollRepository.findByPrivateChatId(privateChatId);
   }
 
@@ -276,7 +280,7 @@ public class PollService {
     if (!poll.getAuthor().getId().equals(user.getId())) {
       throw new UnauthorizedException("Only the author can delete the poll");
     }
-
+    chatMessageRepository.deleteByPoll(poll);
     pollRepository.delete(poll);
   }
 }

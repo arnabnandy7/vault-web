@@ -74,9 +74,13 @@ public class ChatService {
     } else {
       throw new UserNotFoundException("Sender information missing");
     }
+    MessageType messageType =
+        dto.getMessageType() != null ? dto.getMessageType() : MessageType.TEXT;
+    dto.setMessageType(messageType);
 
     ChatMessage message = new ChatMessage();
     message.setSender(sender);
+    message.setMessageType(messageType);
 
     if (dto.getTimestamp() != null) {
       message.setTimestamp(Instant.parse(dto.getTimestamp()));
@@ -110,7 +114,7 @@ public class ChatService {
           privateChatRepository
               .findById(dto.getPrivateChatId())
               .orElseThrow(() -> new PrivateChatNotFoundException("Private chat not found"));
-      message.setMessageType(dto.getMessageType());
+
       message.setE2eePayload(dto.getE2eePayload());
       message.setSenderDeviceId(dto.getSenderDeviceId());
       message.setPrivateChat(privateChat);
@@ -133,7 +137,9 @@ public class ChatService {
 
     dto.setSenderDeviceId(message.getSenderDeviceId());
 
-    dto.setMessageType(message.getMessageType());
+    MessageType messageType =
+        message.getMessageType() != null ? message.getMessageType() : MessageType.TEXT;
+    dto.setMessageType(messageType);
 
     if (message.getGroup() != null) {
 
@@ -145,13 +151,14 @@ public class ChatService {
       dto.setPrivateChatId(message.getPrivateChat().getId());
     }
 
-    if (message.getMessageType() == MessageType.TEXT) {
+    if (messageType == MessageType.TEXT) {
 
       dto.setE2eePayload(message.getE2eePayload());
 
-    } else if (message.getMessageType() == MessageType.POLL) {
-
-      dto.setPoll(pollService.toResponseDto(message.getPoll()));
+    } else if (messageType == MessageType.POLL) {
+      if (message.getPoll() != null) {
+        dto.setPoll(pollService.toResponseDto(message.getPoll()));
+      }
     }
 
     return dto;
