@@ -104,7 +104,11 @@ public class SecurityConfig {
                         "/swagger-resources/**",
                         "/webjars/**",
                         "/docs/**",
-                        "/ws-chat/**")
+                        "/ws-chat/**",
+                        // Allow browsers to load profile picture images without a JWT token.
+                        // Browsers never send Authorization headers when fetching <img src> URLs.
+                        // The files themselves contain no sensitive data (they're just images).
+                        "/uploads/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
