@@ -1,8 +1,8 @@
 export interface SearchResultDto {
   name: string;
   path: string;
-  type: string;
-  size: number;
+  type: 'file' | 'folder';
+  size?: number;
   mimeType: string | null;
   lastModifiedAt: number;
   score: number;

@@ -262,6 +262,9 @@ export class CloudComponent implements OnInit {
   setSort(sort: CloudSort) {
     if (this.sort === sort) return;
     this.sort = sort;
+    this.searchActive = false;
+    this.searchQuery = '';
+    this.searching = false;
     this.contentFirst = 0;
     this.loading = true;
     const relativePath = this.getRelativePath(
@@ -279,10 +282,11 @@ export class CloudComponent implements OnInit {
     const relativePath = this.getRelativePath(
       this.currentFolder?.path || this.rootPath,
     );
+    const wasSearchActive = this.searchActive;
     this.searching = true;
     this.searchActive = true;
     const requestId = ++this.contentRequestId;
-    this.cloudService.searchInFolder(relativePath, query).subscribe({
+    this.cloudService.searchInFolder(relativePath, query, 100).subscribe({
       next: (results) => {
         if (requestId !== this.contentRequestId) return;
         this.entries = this.buildSearchEntries(results);
@@ -292,6 +296,9 @@ export class CloudComponent implements OnInit {
       error: (err) => {
         if (requestId !== this.contentRequestId) return;
         this.searching = false;
+        // Restore the prior mode so a failed search doesn't strand the UI in
+        // "search mode" (no pagination, wrong subtitle) over folder contents.
+        this.searchActive = wasSearchActive;
         this.toast.error('Search failed', this.getErrorMessage(err));
       },
     });
@@ -313,9 +320,13 @@ export class CloudComponent implements OnInit {
   loadRootFolder() {
     this.searchActive = false;
     this.searchQuery = '';
+    this.searching = false;
     this.loading = true;
     this.error = undefined;
     this.contentFirst = 0;
+    // Invalidate any in-flight search/content request so a stale, fast
+    // response can't overwrite the root reload that's about to start.
+    this.contentRequestId++;
     this.cloudService.getRootFolder(false).subscribe({
       next: (folder) => {
         this.currentFolder = folder;
@@ -345,8 +356,12 @@ export class CloudComponent implements OnInit {
   navigateToFolder(folderPath?: string) {
     this.searchActive = false;
     this.searchQuery = '';
+    this.searching = false;
     this.loading = true;
     this.contentFirst = 0;
+    // Invalidate any in-flight search/content request so a stale response
+    // can't overwrite the entries while navigation is in progress.
+    this.contentRequestId++;
     const relativePath = this.getRelativePath(folderPath || this.rootPath);
     this.cloudService.getFolderByPath(relativePath, false).subscribe({
       next: (folder) => {
