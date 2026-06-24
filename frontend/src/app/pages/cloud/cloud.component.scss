@@ -69,8 +69,17 @@
   font-weight: 600;
 }
 
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list li .p-menuitem-link.drag-over {
-  background: color-mix(in srgb, var(--color-primary) 15%, transparent) !important;
+:host
+  ::ng-deep
+  .cloud-breadcrumb
+  .p-breadcrumb-list
+  li
+  .p-menuitem-link.drag-over {
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 15%,
+    transparent
+  ) !important;
   outline: 1px dashed var(--color-primary);
   border-radius: 4px;
   padding: 2px 4px;
@@ -127,7 +136,11 @@
 }
 
 .cloud-row.drag-over {
-  background: color-mix(in srgb, var(--color-primary) 15%, var(--color-surface)) !important;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 15%,
+    var(--color-surface)
+  ) !important;
   outline: 2px dashed var(--color-primary);
   outline-offset: -2px;
 }

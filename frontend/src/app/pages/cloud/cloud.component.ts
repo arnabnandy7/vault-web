@@ -694,7 +694,11 @@ export class CloudComponent implements OnInit {
     }
   }
 
-  isInvalidMove(sourcePath: string, targetPath: string, isFolder: boolean): boolean {
+  isInvalidMove(
+    sourcePath: string,
+    targetPath: string,
+    isFolder: boolean,
+  ): boolean {
     const relativeSource = this.getRelativePath(sourcePath);
     const relativeTarget = this.getRelativePath(targetPath);
 
@@ -722,7 +726,10 @@ export class CloudComponent implements OnInit {
   onDragOver(event: DragEvent, path: string, isFolder: boolean) {
     if (!this.draggedPath) return;
 
-    if (isFolder && !this.isInvalidMove(this.draggedPath, path, this.draggedIsFolder)) {
+    if (
+      isFolder &&
+      !this.isInvalidMove(this.draggedPath, path, this.draggedIsFolder)
+    ) {
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
       this.draggedOverPath = path;
@@ -741,9 +748,21 @@ export class CloudComponent implements OnInit {
     const targetPath = targetFolderPath || this.currentFolder?.path;
     if (!targetPath) return;
 
-    if (this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)) {
-      if (this.draggedIsFolder && (this.getRelativePath(targetPath) === this.getRelativePath(this.draggedPath) || this.getRelativePath(targetPath).startsWith(this.getRelativePath(this.draggedPath) + '/'))) {
-        this.toast.error('Invalid move', 'Cannot move a folder into itself or its own subfolder.');
+    if (
+      this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)
+    ) {
+      if (
+        this.draggedIsFolder &&
+        (this.getRelativePath(targetPath) ===
+          this.getRelativePath(this.draggedPath) ||
+          this.getRelativePath(targetPath).startsWith(
+            this.getRelativePath(this.draggedPath) + '/',
+          ))
+      ) {
+        this.toast.error(
+          'Invalid move',
+          'Cannot move a folder into itself or its own subfolder.',
+        );
       }
       this.draggedPath = null;
       return;
@@ -757,15 +776,21 @@ export class CloudComponent implements OnInit {
         await firstValueFrom(
           this.cloudService.renameOrMoveFolder(
             relativeSource,
-            this.joinRelativePath(relativeTarget, this.getNameFromPath(this.draggedPath)),
-          )
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
         );
       } else {
         await firstValueFrom(
           this.cloudService.renameOrMoveFile(
             relativeSource,
-            this.joinRelativePath(relativeTarget, this.getNameFromPath(this.draggedPath)),
-          )
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
         );
       }
       this.reloadCurrentFolder();
@@ -792,7 +817,9 @@ export class CloudComponent implements OnInit {
     this.draggedOverPath = null;
     if (!this.draggedPath || !targetPath) return;
 
-    if (this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)) {
+    if (
+      this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)
+    ) {
       this.draggedPath = null;
       return;
     }
@@ -805,15 +832,21 @@ export class CloudComponent implements OnInit {
         await firstValueFrom(
           this.cloudService.renameOrMoveFolder(
             relativeSource,
-            this.joinRelativePath(relativeTarget, this.getNameFromPath(this.draggedPath)),
-          )
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
         );
       } else {
         await firstValueFrom(
           this.cloudService.renameOrMoveFile(
             relativeSource,
-            this.joinRelativePath(relativeTarget, this.getNameFromPath(this.draggedPath)),
-          )
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
         );
       }
       this.reloadCurrentFolder();

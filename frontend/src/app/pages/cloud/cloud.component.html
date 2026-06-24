@@ -80,7 +80,9 @@
               (click)="item.command ? item.command() : null"
             >
               <span *ngIf="item.icon" [class]="item.icon"></span>
-              <span *ngIf="item.label" class="p-menuitem-text">{{ item.label }}</span>
+              <span *ngIf="item.label" class="p-menuitem-text">{{
+                item.label
+              }}</span>
             </a>
           </ng-template>
         </p-breadcrumb>
@@ -121,7 +123,9 @@
       <ng-template pTemplate="body" let-entry>
         <tr
           class="cloud-row"
-          [class.drag-over]="entry.kind === 'folder' && draggedOverPath === entry.path"
+          [class.drag-over]="
+            entry.kind === 'folder' && draggedOverPath === entry.path
+          "
           (drop)="onDrop($event, entry.kind === 'folder' ? entry.path : null)"
           (dragover)="onDragOver($event, entry.path, entry.kind === 'folder')"
           (dragleave)="onDragLeave()"
