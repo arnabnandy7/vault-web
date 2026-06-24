@@ -7,7 +7,13 @@ import org.springframework.stereotype.Service;
 import vaultWeb.exceptions.DuplicateUsernameException;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.User;
+import vaultWeb.models.SecurityEvent;
 import vaultWeb.repositories.UserRepository;
+import vaultWeb.repositories.SecurityEventRepository;
+import vaultWeb.dtos.user.SecurityEventDto;
+import vaultWeb.security.annotations.SecurityEventType;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 
 /**
  * Service class for managing users.
@@ -20,6 +26,7 @@ import vaultWeb.repositories.UserRepository;
 public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final SecurityEventRepository securityEventRepository;
 
   /**
    * Registers a new user by encoding their password and assigning the default role.
@@ -86,5 +93,37 @@ public class UserService {
 
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
+  }
+
+  /**
+   * Retrieves all security events for a specific user, ordered chronologically (newest first).
+   */
+  public List<SecurityEventDto> getSecurityEvents(User user) {
+    return securityEventRepository.findByUserOrderByTimestampDesc(user)
+        .stream()
+        .map(SecurityEventDto::new)
+        .toList();
+  }
+
+  /**
+   * Manually logs a security event (e.g. for external/custom actions).
+   */
+  public void logSecurityEvent(User user, SecurityEventType eventType, String status, HttpServletRequest request) {
+    SecurityEvent event = new SecurityEvent();
+    event.setUser(user);
+    event.setUsername(user != null ? user.getUsername() : "anonymous");
+    event.setEventType(eventType);
+    event.setStatus(status);
+    event.setTimestamp(Instant.now());
+    if (request != null) {
+      event.setIpAddress(request.getRemoteAddr());
+      String ua = request.getHeader("User-Agent");
+      event.setUserAgent(ua != null ? ua : "unknown");
+    } else {
+      event.setIpAddress("unknown");
+      event.setUserAgent("unknown");
+    }
+    event.setLocation("Unknown");
+    securityEventRepository.save(event);
   }
 }

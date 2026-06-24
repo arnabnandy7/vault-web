@@ -12,6 +12,8 @@ import vaultWeb.dtos.DeviceRegistrationRequest;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.Device;
 import vaultWeb.services.DeviceService;
+import vaultWeb.security.annotations.AuditSecurityEvent;
+import vaultWeb.security.annotations.SecurityEventType;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -21,6 +23,7 @@ public class DeviceController {
   private final DeviceService deviceService;
 
   @PostMapping("/register")
+  @AuditSecurityEvent(SecurityEventType.NEW_DEVICE_DETECTED)
   public DeviceDto registerDevice(
       @Valid @RequestBody DeviceRegistrationRequest request, Authentication authentication) {
     if (authentication == null) {

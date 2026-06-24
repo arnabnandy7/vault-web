@@ -22,7 +22,10 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import vaultWeb.dtos.user.LoginRequest;
 import vaultWeb.dtos.user.UserDto;
+import vaultWeb.models.SecurityEvent;
+import vaultWeb.models.User;
 import vaultWeb.repositories.UserRepository;
+import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
@@ -42,6 +45,7 @@ public class SecurityAuditAspect {
   private static final Logger log = LoggerFactory.getLogger(SecurityAuditAspect.class);
   private final JwtUtil jwtUtil;
   private final UserRepository userRepository;
+  private final SecurityEventRepository securityEventRepository;
 
   /**
    * Logs successful security operations.
@@ -81,6 +85,7 @@ public class SecurityAuditAspect {
     String ip = getClientIp(request);
     String username = extractUsername(joinPoint, request);
     Instant timestamp = Instant.now();
+    String userAgent = request != null ? request.getHeader("User-Agent") : "unknown";
 
     if (ex == null) {
       log.info(
@@ -99,6 +104,22 @@ public class SecurityAuditAspect {
           timestamp,
           status,
           ex.getClass().getSimpleName());
+    }
+
+    try {
+      User user = userRepository.findByUsername(username).orElse(null);
+      SecurityEvent event = new SecurityEvent();
+      event.setUser(user);
+      event.setUsername(username);
+      event.setEventType(eventType);
+      event.setStatus(status);
+      event.setTimestamp(timestamp);
+      event.setIpAddress(ip);
+      event.setUserAgent(userAgent != null ? userAgent : "unknown");
+      event.setLocation("Unknown");
+      securityEventRepository.save(event);
+    } catch (Exception e) {
+      log.error("Failed to save security event to database", e);
     }
   }
 

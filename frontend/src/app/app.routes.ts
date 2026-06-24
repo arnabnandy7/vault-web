@@ -9,6 +9,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { PasswordManagerComponent } from './pages/password-manager/password-manager.component';
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 import { ServerErrorComponent } from './pages/server-error/server-error.component';
+import { SecurityActivityComponent } from './pages/security-activity/security-activity.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, data: { hideNavbar: true } },
@@ -21,6 +22,11 @@ export const routes: Routes = [
   {
     path: 'passwords',
     component: PasswordManagerComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'security-activity',
+    component: SecurityActivityComponent,
     canActivate: [authGuard],
   },
   { path: 'password-manager', redirectTo: 'passwords', pathMatch: 'full' },

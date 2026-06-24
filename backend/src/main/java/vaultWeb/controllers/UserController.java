@@ -3,6 +3,7 @@ package vaultWeb.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,6 +15,7 @@ import vaultWeb.dtos.user.ChangePasswordRequest;
 import vaultWeb.dtos.user.LoginRequest;
 import vaultWeb.dtos.user.UserDto;
 import vaultWeb.dtos.user.UserResponseDto;
+import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.User;
 import vaultWeb.security.annotations.ApiRateLimit;
@@ -193,5 +195,47 @@ public class UserController {
     }
     userService.changePassword(currentUser, request.getCurrentPassword(), request.getNewPassword());
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/security-activity")
+  @Operation(
+      summary = "Get security activity events for the authenticated user",
+      description = "Returns a list of recent security-relevant events on the user's account.")
+  @ApiResponse(responseCode = "200", description = "List of security events retrieved successfully.")
+  @ApiResponse(responseCode = "401", description = "Unauthorized request.")
+  public ResponseEntity<List<SecurityEventDto>> getSecurityActivity() {
+    User currentUser = authService.getCurrentUser();
+    if (currentUser == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+    List<SecurityEventDto> events = userService.getSecurityEvents(currentUser);
+    return ResponseEntity.ok(events);
+  }
+
+  @PostMapping("/security-activity/log")
+  @Operation(
+      summary = "Log a vault security event",
+      description = "Exposes an endpoint to log security events such as VAULT_UNLOCKED and VAULT_LOCKED.")
+  @ApiResponse(responseCode = "200", description = "Event logged successfully.")
+  @ApiResponse(responseCode = "400", description = "Invalid event type.")
+  @ApiResponse(responseCode = "401", description = "Unauthorized request.")
+  public ResponseEntity<Void> logSecurityEvent(@RequestBody Map<String, String> payload, HttpServletRequest request) {
+    User currentUser = authService.getCurrentUser();
+    if (currentUser == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+    String eventTypeStr = payload.get("eventType");
+    if (eventTypeStr == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    SecurityEventType eventType;
+    try {
+      eventType = SecurityEventType.valueOf(eventTypeStr);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    userService.logSecurityEvent(currentUser, eventType, "SUCCESS", request);
+    return ResponseEntity.ok().build();
   }
 }

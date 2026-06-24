@@ -21,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import vaultWeb.dtos.user.UserDto;
+import vaultWeb.repositories.UserRepository;
+import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
@@ -33,6 +35,8 @@ class SecurityAuditAspectTest {
   @Mock private JoinPoint joinPoint;
   @Mock private AuditSecurityEvent auditSecurityEvent;
   @Mock private HttpServletRequest request;
+  @Mock private UserRepository userRepository;
+  @Mock private SecurityEventRepository securityEventRepository;
 
   @InjectMocks private SecurityAuditAspect securityAuditAspect;
 
