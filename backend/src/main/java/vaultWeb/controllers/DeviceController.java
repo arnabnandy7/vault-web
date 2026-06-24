@@ -11,9 +11,9 @@ import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.DeviceRegistrationRequest;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.Device;
-import vaultWeb.services.DeviceService;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
+import vaultWeb.services.DeviceService;
 
 @RestController
 @RequestMapping("/api/devices")

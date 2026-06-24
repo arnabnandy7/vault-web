@@ -1,19 +1,19 @@
 package vaultWeb.services;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.exceptions.DuplicateUsernameException;
 import vaultWeb.exceptions.UnauthorizedException;
-import vaultWeb.models.User;
 import vaultWeb.models.SecurityEvent;
-import vaultWeb.repositories.UserRepository;
+import vaultWeb.models.User;
 import vaultWeb.repositories.SecurityEventRepository;
-import vaultWeb.dtos.user.SecurityEventDto;
+import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.annotations.SecurityEventType;
-import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 
 /**
  * Service class for managing users.
@@ -95,20 +95,16 @@ public class UserService {
     userRepository.save(user);
   }
 
-  /**
-   * Retrieves all security events for a specific user, ordered chronologically (newest first).
-   */
+  /** Retrieves all security events for a specific user, ordered chronologically (newest first). */
   public List<SecurityEventDto> getSecurityEvents(User user) {
-    return securityEventRepository.findByUserOrderByTimestampDesc(user)
-        .stream()
+    return securityEventRepository.findByUserOrderByTimestampDesc(user).stream()
         .map(SecurityEventDto::new)
         .toList();
   }
 
-  /**
-   * Manually logs a security event (e.g. for external/custom actions).
-   */
-  public void logSecurityEvent(User user, SecurityEventType eventType, String status, HttpServletRequest request) {
+  /** Manually logs a security event (e.g. for external/custom actions). */
+  public void logSecurityEvent(
+      User user, SecurityEventType eventType, String status, HttpServletRequest request) {
     SecurityEvent event = new SecurityEvent();
     event.setUser(user);
     event.setUsername(user != null ? user.getUsername() : "anonymous");

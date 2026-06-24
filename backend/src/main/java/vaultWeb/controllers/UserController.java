@@ -13,9 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vaultWeb.dtos.user.ChangePasswordRequest;
 import vaultWeb.dtos.user.LoginRequest;
+import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.dtos.user.UserDto;
 import vaultWeb.dtos.user.UserResponseDto;
-import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.User;
 import vaultWeb.security.annotations.ApiRateLimit;
@@ -201,7 +201,9 @@ public class UserController {
   @Operation(
       summary = "Get security activity events for the authenticated user",
       description = "Returns a list of recent security-relevant events on the user's account.")
-  @ApiResponse(responseCode = "200", description = "List of security events retrieved successfully.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "List of security events retrieved successfully.")
   @ApiResponse(responseCode = "401", description = "Unauthorized request.")
   public ResponseEntity<List<SecurityEventDto>> getSecurityActivity() {
     User currentUser = authService.getCurrentUser();
@@ -215,11 +217,13 @@ public class UserController {
   @PostMapping("/security-activity/log")
   @Operation(
       summary = "Log a vault security event",
-      description = "Exposes an endpoint to log security events such as VAULT_UNLOCKED and VAULT_LOCKED.")
+      description =
+          "Exposes an endpoint to log security events such as VAULT_UNLOCKED and VAULT_LOCKED.")
   @ApiResponse(responseCode = "200", description = "Event logged successfully.")
   @ApiResponse(responseCode = "400", description = "Invalid event type.")
   @ApiResponse(responseCode = "401", description = "Unauthorized request.")
-  public ResponseEntity<Void> logSecurityEvent(@RequestBody Map<String, String> payload, HttpServletRequest request) {
+  public ResponseEntity<Void> logSecurityEvent(
+      @RequestBody Map<String, String> payload, HttpServletRequest request) {
     User currentUser = authService.getCurrentUser();
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
