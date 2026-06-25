@@ -15,6 +15,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { FileDto } from '../../models/dtos/FileDto';
 import { FolderDto } from '../../models/dtos/FolderDto';
 import { FolderContentItemDto } from '../../models/dtos/FolderContentItemDto';
+import { SearchResultDto } from '../../models/dtos/SearchResultDto';
 import { CloudService } from '../../services/cloud.service';
 import { finalize, firstValueFrom } from 'rxjs';
 import { UiToastService } from '../../core/services/ui-toast.service';
@@ -30,6 +31,7 @@ interface CloudEntry {
   path: string;
   sizeLabel: string;
   typeLabel: string;
+  lastModifiedAt: number;
 }
 
 type CloudSort =
@@ -88,6 +90,10 @@ export class CloudComponent implements OnInit {
   sort: CloudSort = 'name,asc';
   entries: CloudEntry[] = [];
   downloadingPaths = new Set<string>();
+
+  searchQuery = '';
+  searchActive = false;
+  searching = false;
 
   pageSize = 50;
   totalElements = 0;
@@ -195,6 +201,19 @@ export class CloudComponent implements OnInit {
       path: item.path,
       sizeLabel: this.formatFileSize(item.size),
       typeLabel: item.directory ? 'Folder' : item.mimeType || 'Unknown',
+      lastModifiedAt: item.lastModifiedAt,
+    }));
+  }
+
+  private buildSearchEntries(results: SearchResultDto[]): CloudEntry[] {
+    return results.map((result) => ({
+      kind: result.type === 'folder' ? 'folder' : 'file',
+      name: result.name,
+      path: result.path,
+      sizeLabel: this.formatFileSize(result.size ?? 0),
+      typeLabel:
+        result.type === 'folder' ? 'Folder' : result.mimeType || 'Unknown',
+      lastModifiedAt: result.lastModifiedAt,
     }));
   }
 
@@ -243,6 +262,53 @@ export class CloudComponent implements OnInit {
   setSort(sort: CloudSort) {
     if (this.sort === sort) return;
     this.sort = sort;
+    this.searchActive = false;
+    this.searchQuery = '';
+    this.searching = false;
+    this.contentFirst = 0;
+    this.loading = true;
+    const relativePath = this.getRelativePath(
+      this.currentFolder?.path || this.rootPath,
+    );
+    this.loadFolderContent(relativePath, 0);
+  }
+
+  onSearch() {
+    const query = this.searchQuery.trim();
+    if (!query) {
+      this.clearSearch();
+      return;
+    }
+    const relativePath = this.getRelativePath(
+      this.currentFolder?.path || this.rootPath,
+    );
+    const wasSearchActive = this.searchActive;
+    this.searching = true;
+    this.searchActive = true;
+    const requestId = ++this.contentRequestId;
+    this.cloudService.searchInFolder(relativePath, query, 100).subscribe({
+      next: (results) => {
+        if (requestId !== this.contentRequestId) return;
+        this.entries = this.buildSearchEntries(results);
+        this.totalElements = this.entries.length;
+        this.searching = false;
+      },
+      error: (err) => {
+        if (requestId !== this.contentRequestId) return;
+        this.searching = false;
+        // Restore the prior mode so a failed search doesn't strand the UI in
+        // "search mode" (no pagination, wrong subtitle) over folder contents.
+        this.searchActive = wasSearchActive;
+        this.toast.error('Search failed', this.getErrorMessage(err));
+      },
+    });
+  }
+
+  clearSearch() {
+    if (!this.searchActive && this.searchQuery === '') return;
+    this.searchQuery = '';
+    this.searchActive = false;
+    this.searching = false;
     this.contentFirst = 0;
     this.loading = true;
     const relativePath = this.getRelativePath(
@@ -252,9 +318,15 @@ export class CloudComponent implements OnInit {
   }
 
   loadRootFolder() {
+    this.searchActive = false;
+    this.searchQuery = '';
+    this.searching = false;
     this.loading = true;
     this.error = undefined;
     this.contentFirst = 0;
+    // Invalidate any in-flight search/content request so a stale, fast
+    // response can't overwrite the root reload that's about to start.
+    this.contentRequestId++;
     this.cloudService.getRootFolder(false).subscribe({
       next: (folder) => {
         this.currentFolder = folder;
@@ -282,8 +354,14 @@ export class CloudComponent implements OnInit {
   }
 
   navigateToFolder(folderPath?: string) {
+    this.searchActive = false;
+    this.searchQuery = '';
+    this.searching = false;
     this.loading = true;
     this.contentFirst = 0;
+    // Invalidate any in-flight search/content request so a stale response
+    // can't overwrite the entries while navigation is in progress.
+    this.contentRequestId++;
     const relativePath = this.getRelativePath(folderPath || this.rootPath);
     this.cloudService.getFolderByPath(relativePath, false).subscribe({
       next: (folder) => {
