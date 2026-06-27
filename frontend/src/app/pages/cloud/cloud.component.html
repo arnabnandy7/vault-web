@@ -29,7 +29,7 @@
         icon="pi pi-refresh"
         [outlined]="true"
         styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
-        (click)="reloadRootFolder()"
+        (click)="reloadCurrentFolder()"
       ></p-button>
     </div>
   </section>
@@ -98,7 +98,23 @@
           [model]="breadcrumbItems"
           [home]="homeBreadcrumb"
           styleClass="cloud-breadcrumb text-xxs sm:text-xs"
-        ></p-breadcrumb>
+        >
+          <ng-template pTemplate="item" let-item>
+            <a
+              class="p-menuitem-link cursor-pointer"
+              [class.drag-over]="draggedOverPath === item.id"
+              (drop)="onBreadcrumbDrop($event, item.id)"
+              (dragover)="onBreadcrumbDragOver($event, item.id)"
+              (dragleave)="onDragLeave()"
+              (click)="item.command ? item.command() : null"
+            >
+              <span *ngIf="item.icon" [class]="item.icon"></span>
+              <span *ngIf="item.label" class="p-menuitem-text">{{
+                item.label
+              }}</span>
+            </a>
+          </ng-template>
+        </p-breadcrumb>
       </ng-template>
     </p-toolbar>
   </section>
@@ -137,8 +153,12 @@
       <ng-template pTemplate="body" let-entry>
         <tr
           class="cloud-row"
+          [class.drag-over]="
+            entry.kind === 'folder' && draggedOverPath === entry.path
+          "
           (drop)="onDrop($event, entry.kind === 'folder' ? entry.path : null)"
-          (dragover)="onDragOver($event)"
+          (dragover)="onDragOver($event, entry.path, entry.kind === 'folder')"
+          (dragleave)="onDragLeave()"
         >
           <td>
             <button
@@ -148,6 +168,7 @@
               (dragstart)="
                 onDragStart($event, entry.path, entry.kind === 'folder')
               "
+              (dragend)="onDragEnd()"
               (click)="
                 entry.kind === 'folder'
                   ? navigateToFolder(entry.path)

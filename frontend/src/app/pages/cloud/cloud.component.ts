@@ -103,6 +103,7 @@ export class CloudComponent implements OnInit {
 
   private draggedPath: string | null = null;
   private draggedIsFolder = false;
+  draggedOverPath: string | null = null;
 
   constructor(
     private cloudService: CloudService,
@@ -179,6 +180,7 @@ export class CloudComponent implements OnInit {
   get breadcrumbItems(): MenuItem[] {
     return this.breadcrumbs.map((crumb) => ({
       label: crumb.name,
+      id: crumb.path,
       command: () => this.navigateToFolder(crumb.path),
     }));
   }
@@ -186,6 +188,7 @@ export class CloudComponent implements OnInit {
   get homeBreadcrumb(): MenuItem {
     return {
       icon: 'pi pi-home',
+      id: this.rootPath,
       command: () => this.navigateToRoot(),
     };
   }
@@ -774,38 +777,111 @@ export class CloudComponent implements OnInit {
     }
   }
 
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  isInvalidMove(
+    sourcePath: string,
+    targetPath: string,
+    isFolder: boolean,
+  ): boolean {
+    const relativeSource = this.getRelativePath(sourcePath);
+    const relativeTarget = this.getRelativePath(targetPath);
+
+    // Cannot move to the exact same path
+    if (relativeSource === relativeTarget) {
+      return true;
+    }
+
+    // Cannot move a folder into its own subfolder
+    if (isFolder) {
+      if (relativeTarget.startsWith(relativeSource + '/')) {
+        return true;
+      }
+    }
+
+    // Cannot move an item to its current parent folder (it's already there)
+    const currentParent = this.getParentRelativePath(sourcePath);
+    if (currentParent === relativeTarget) {
+      return true;
+    }
+
+    return false;
+  }
+
+  onDragOver(event: DragEvent, path: string, isFolder: boolean) {
+    if (!this.draggedPath) return;
+
+    if (
+      isFolder &&
+      !this.isInvalidMove(this.draggedPath, path, this.draggedIsFolder)
+    ) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      this.draggedOverPath = path;
+    }
+  }
+
+  onDragLeave() {
+    this.draggedOverPath = null;
+  }
+
+  onDragEnd() {
+    this.draggedPath = null;
+    this.draggedOverPath = null;
   }
 
   async onDrop(event: DragEvent, targetFolderPath?: string | null) {
     event.preventDefault();
+    this.draggedOverPath = null;
     if (!this.draggedPath) return;
 
     const targetPath = targetFolderPath || this.currentFolder?.path;
-    if (!targetPath || this.draggedPath === targetPath) return;
+    if (!targetPath) return;
+
+    if (
+      this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)
+    ) {
+      if (
+        this.draggedIsFolder &&
+        (this.getRelativePath(targetPath) ===
+          this.getRelativePath(this.draggedPath) ||
+          this.getRelativePath(targetPath).startsWith(
+            this.getRelativePath(this.draggedPath) + '/',
+          ))
+      ) {
+        this.toast.error(
+          'Invalid move',
+          'Cannot move a folder into itself or its own subfolder.',
+        );
+      }
+      this.draggedPath = null;
+      return;
+    }
 
     const relativeSource = this.getRelativePath(this.draggedPath);
     const relativeTarget = this.getRelativePath(targetPath);
 
     try {
       if (this.draggedIsFolder) {
-        await this.cloudService
-          .renameOrMoveFolder(
+        await firstValueFrom(
+          this.cloudService.renameOrMoveFolder(
             relativeSource,
-            `${relativeTarget}/${this.getNameFromPath(this.draggedPath)}`,
-          )
-          .toPromise();
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
+        );
       } else {
-        await this.cloudService
-          .renameOrMoveFile(
+        await firstValueFrom(
+          this.cloudService.renameOrMoveFile(
             relativeSource,
-            `${relativeTarget}/${this.getNameFromPath(this.draggedPath)}`,
-          )
-          .toPromise();
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
+        );
       }
-      this.reloadRootFolder();
+      this.reloadCurrentFolder();
       this.toast.success('Item moved', 'Move completed successfully.');
     } catch (err: unknown) {
       this.toast.error('Move failed', this.getErrorMessage(err));
@@ -814,34 +890,54 @@ export class CloudComponent implements OnInit {
     }
   }
 
-  onBreadcrumbDragOver(event: DragEvent) {
-    event.preventDefault();
+  onBreadcrumbDragOver(event: DragEvent, path?: string) {
+    if (!this.draggedPath || !path) return;
+
+    if (!this.isInvalidMove(this.draggedPath, path, this.draggedIsFolder)) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      this.draggedOverPath = path;
+    }
   }
 
-  async onBreadcrumbDrop(event: DragEvent, targetPath: string) {
+  async onBreadcrumbDrop(event: DragEvent, targetPath?: string) {
     event.preventDefault();
-    if (!this.draggedPath) return;
+    this.draggedOverPath = null;
+    if (!this.draggedPath || !targetPath) return;
+
+    if (
+      this.isInvalidMove(this.draggedPath, targetPath, this.draggedIsFolder)
+    ) {
+      this.draggedPath = null;
+      return;
+    }
 
     const relativeSource = this.getRelativePath(this.draggedPath);
     const relativeTarget = this.getRelativePath(targetPath);
 
     try {
       if (this.draggedIsFolder) {
-        await this.cloudService
-          .renameOrMoveFolder(
+        await firstValueFrom(
+          this.cloudService.renameOrMoveFolder(
             relativeSource,
-            `${relativeTarget}/${this.getNameFromPath(this.draggedPath)}`,
-          )
-          .toPromise();
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
+        );
       } else {
-        await this.cloudService
-          .renameOrMoveFile(
+        await firstValueFrom(
+          this.cloudService.renameOrMoveFile(
             relativeSource,
-            `${relativeTarget}/${this.getNameFromPath(this.draggedPath)}`,
-          )
-          .toPromise();
+            this.joinRelativePath(
+              relativeTarget,
+              this.getNameFromPath(this.draggedPath),
+            ),
+          ),
+        );
       }
-      this.reloadRootFolder();
+      this.reloadCurrentFolder();
       this.toast.success('Item moved', 'Move completed successfully.');
     } catch (err: unknown) {
       this.toast.error('Move failed', this.getErrorMessage(err));
@@ -851,8 +947,17 @@ export class CloudComponent implements OnInit {
   }
 
   getNameFromPath(path: string): string {
-    const parts = path.split('/');
+    const normalized = path.replace(/\\/g, '/');
+    const parts = normalized.split('/');
     return parts[parts.length - 1];
+  }
+
+  reloadCurrentFolder() {
+    if (this.currentFolder) {
+      this.navigateToFolder(this.currentFolder.path);
+    } else {
+      this.loadRootFolder();
+    }
   }
 
   previewFile(file: FileDto) {
