@@ -567,11 +567,16 @@ export class CloudComponent implements OnInit {
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    const file = input?.files?.[0];
-    if (!file) return;
+    const files = input?.files;
+
+    if (!files || files.length === 0) return;
 
     const currentPath = this.getRelativePath(this.currentFolder?.path || '/');
-    this.uploadFile(currentPath, file);
+
+    for (const file of Array.from(files)) {
+      this.uploadFile(currentPath, file);
+    }
+
     input.value = '';
   }
 
