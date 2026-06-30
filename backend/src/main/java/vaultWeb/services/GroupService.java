@@ -202,4 +202,44 @@ public class GroupService {
     groupMemberRepository.delete(memberToRemove);
     return group;
   }
+
+  /**
+   * Retrieves all groups that a user is a member of.
+   *
+   * @param user the user whose groups to retrieve
+   * @return a list of groups where the user is a member
+   */
+  public List<Group> getUserGroups(User user) {
+    return groupMemberRepository.findAllByUser(user).stream()
+        .map(GroupMember::getGroup)
+        .toList();
+  }
+
+  /**
+   * Adds a user to a group as a regular member.
+   *
+   * @param groupId the ID of the group
+   * @param userId the ID of the user to add
+   * @return the updated group
+   */
+  public Group addMember(Long groupId, Long userId) {
+    Group group =
+        groupRepository
+            .findById(groupId)
+            .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + groupId));
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+    boolean alreadyMember =
+        groupMemberRepository.findByGroupAndUser(group, user).isPresent();
+    if (alreadyMember) {
+      throw new AlreadyMemberException(groupId, userId);
+    }
+
+    groupMemberRepository.save(new GroupMember(group, user, Role.USER));
+    return group;
+  }
 }

@@ -52,6 +52,41 @@
   </div>
 
   <div *ngIf="!isLoading && !error">
+    <!-- Group Chats Section -->
+    <div *ngIf="filteredUserGroups.length > 0">
+      <div
+        class="section-heading px-4 py-2 text-xs font-semibold text-gray-600 uppercase"
+      >
+        Group Chats
+      </div>
+      <ul class="divide-y divide-gray-200 mb-4">
+        <li
+          *ngFor="let group of filteredUserGroups"
+          (click)="openGroupChat(group)"
+          [class.cursor-pointer]="true"
+          class="chat-row flex items-center px-4 py-3 transition hover:bg-gray-100"
+        >
+          <!-- Avatar -->
+          <div
+            class="chat-avatar w-10 h-10 rounded-full text-white bg-indigo-500 flex items-center justify-center font-semibold mr-4 select-none flex-shrink-0"
+          >
+            {{ group.name.charAt(0).toUpperCase() }}
+          </div>
+
+          <!-- Chat Info -->
+          <div class="flex-1">
+            <span class="text-gray-800 font-medium">{{ group.name }}</span>
+            <div
+              class="text-xs text-gray-500 truncate"
+              *ngIf="group.description"
+            >
+              {{ group.description }}
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
     <div *ngIf="filteredPrivateChats.length > 0">
       <div
         class="section-heading px-4 py-2 text-xs font-semibold text-gray-600 uppercase"
@@ -294,11 +329,17 @@
 </p-dialog>
 
 <app-private-chat-dialog
-  *ngIf="selectedUsername && privateChatId"
-  [username]="selectedUsername"
+  *ngIf="
+    (selectedUsername && privateChatId) ||
+    (selectedGroupName && selectedGroupId)
+  "
+  [username]="selectedUsername || ''"
   [currentUsername]="currentUsername"
   [privateChatId]="privateChatId"
   [otherUserPicUrl]="getProfilePictureUrl(getUserByUsername(selectedUsername))"
   [currentUserPicUrl]="getProfilePictureUrl(getCurrentUser())"
+  [groupId]="selectedGroupId"
+  [groupName]="selectedGroupName"
+  (closeChat)="closeChat()"
   (closeChat)="closeChat()"
 />
