@@ -42,6 +42,71 @@
       </div>
     </section>
 
+    <!-- ── Profile Picture Card ─────────────────────────────────────────── -->
+    <section class="glass-card profile-picture-card">
+      <header class="section-header">
+        <div>
+          <p class="eyebrow">Profile</p>
+          <h2>Your photo</h2>
+        </div>
+      </header>
+      <div class="profile-picture-body">
+        <!-- Left: current avatar -->
+        <div class="profile-avatar-area">
+          <div class="profile-avatar-circle">
+            <img
+              *ngIf="profilePictureUrl; else dashboardInitial"
+              [src]="profilePictureUrl"
+              alt="Your profile picture"
+              class="profile-avatar-img"
+            />
+            <ng-template #dashboardInitial>
+              <div class="profile-avatar-initial">
+                {{ data.profile.username.charAt(0).toUpperCase() }}
+              </div>
+            </ng-template>
+          </div>
+          <p class="profile-username">{{ data.profile.username }}</p>
+        </div>
+        <!-- Right: upload controls -->
+        <div class="profile-picture-controls">
+          <p class="profile-picture-hint">JPG, PNG, or WebP · Max 2 MB</p>
+          <!-- Hidden file input triggered by the button below -->
+          <input
+            #fileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style="display: none"
+            (change)="onProfilePictureSelected($event)"
+          />
+          <button
+            class="primary-btn upload-btn"
+            type="button"
+            [disabled]="isUploadingPicture"
+            (click)="fileInput.click()"
+          >
+            <span *ngIf="!isUploadingPicture">
+              <i class="pi pi-upload" style="margin-right: 0.4rem;"></i>
+              {{ profilePictureUrl ? 'Change Photo' : 'Upload Photo' }}
+            </span>
+            <span *ngIf="isUploadingPicture">Uploading…</span>
+          </button>
+          <button
+            *ngIf="profilePictureUrl"
+            class="danger-btn"
+            type="button"
+            [disabled]="isUploadingPicture"
+            (click)="removeProfilePicture()"
+          >
+            <i class="pi pi-trash" style="margin-right: 0.4rem;"></i>
+            Remove Photo
+          </button>
+          <p class="form-success" *ngIf="pictureSuccess">{{ pictureSuccess }}</p>
+          <p class="form-error" *ngIf="pictureError">{{ pictureError }}</p>
+        </div>
+      </div>
+    </section>
+
     <div class="content-grid">
       <div class="primary-column space-y-6">
         <section class="glass-card">

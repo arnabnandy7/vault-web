@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
+import { UserService } from '../services/user.service';
 import {
   EXTERNAL_DOMAIN_LINKS,
   ExternalDomainLink,
@@ -15,15 +16,65 @@ import {
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss',
 })
-export class NavbarComponent {
+// implements OnInit — this tells Angular to call ngOnInit() after the component is created
+export class NavbarComponent implements OnInit {
   isMobileMenuOpen = false;
   isDomainDropdownOpen = false;
   readonly externalDomainLinks: ExternalDomainLink[] = EXTERNAL_DOMAIN_LINKS;
 
+  // Stores the full URL to the profile picture (e.g. "http://localhost:8080/uploads/...")
+  // null means no picture is set — the template will show the fallback initial instead
+  profilePictureUrl: string | null = null;
+
   constructor(
     public themeService: ThemeService,
-    private authService: AuthService,
+    // 'public' so the HTML template can access authService.getUsername() in [title] binding
+    public authService: AuthService,
+    // Inject UserService so we can call getProfilePicture() and getProfilePictureUrl()
+    private userService: UserService,
   ) {}
+
+  /**
+   * ngOnInit() is Angular's lifecycle hook — it runs once after the component is created.
+   * We use it to load the profile picture as soon as the navbar appears.
+   * This is the standard Angular way to run setup logic (not in the constructor).
+   */
+  ngOnInit(): void {
+    this.loadProfilePicture();
+  }
+
+  /**
+   * Calls the backend to get the current user's profile picture path,
+   * then converts it to a full URL using userService.getProfilePictureUrl().
+   */
+  loadProfilePicture(): void {
+    // Only try to load if the user is logged in (has a JWT token)
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
+    this.userService.getProfilePicture().subscribe({
+      next: (res) => {
+        // getProfilePictureUrl() converts "uploads/..." → "http://localhost:8080/uploads/..."
+        // Returns null if res.profilePicture is empty or null
+        this.profilePictureUrl = this.userService.getProfilePictureUrl(res.profilePicture);
+      },
+      error: () => {
+        // If the request fails (e.g. network error), just show the fallback avatar
+        this.profilePictureUrl = null;
+      },
+    });
+  }
+
+  /**
+   * Returns the first letter of the username, uppercased.
+   * Used as the fallback avatar text when no profile picture is set.
+   * Example: username "alice" → returns "A"
+   */
+  get usernameInitial(): string {
+    const username = this.authService.getUsername();
+    return username ? username.charAt(0).toUpperCase() : '?';
+  }
 
   @HostListener('document:click')
   closeDomainDropdownOnOutsideClick(): void {
