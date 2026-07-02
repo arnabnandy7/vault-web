@@ -6,9 +6,9 @@ import lombok.NoArgsConstructor;
 import vaultWeb.models.User;
 
 /**
- * A "safe" version of the User object that we send to the frontend.
- * We never send the full User entity (it contains the password hash!).
- * This DTO only contains fields that are safe to share publicly.
+ * A "safe" version of the User object that we send to the frontend. We never send the full User
+ * entity (it contains the password hash!). This DTO only contains fields that are safe to share
+ * publicly.
  */
 @Data
 @AllArgsConstructor

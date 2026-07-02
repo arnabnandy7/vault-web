@@ -121,8 +121,8 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles InvalidFileException (bad upload type or size) and returns 400 Bad Request.
-   * The message from the exception is safe to surface to the client (we wrote it ourselves).
+   * Handles InvalidFileException (bad upload type or size) and returns 400 Bad Request. The message
+   * from the exception is safe to surface to the client (we wrote it ourselves).
    */
   @ExceptionHandler(InvalidFileException.class)
   public ResponseEntity<ApiErrorResponse> handleInvalidFile(InvalidFileException ex) {

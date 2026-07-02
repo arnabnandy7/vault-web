@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import vaultWeb.exceptions.InvalidFileException;
 
-/**
- * Service responsible for file-system operations related to profile pictures.
- */
+/** Service responsible for file-system operations related to profile pictures. */
 @Service
 public class ProfilePictureService {
 
@@ -24,12 +22,9 @@ public class ProfilePictureService {
   @Value("${app.upload.profile-picture.max-size-mb}")
   private int maxSizeMb;
 
-  private static final Set<String> ALLOWED_TYPES =
-      Set.of("image/jpeg", "image/png", "image/webp");
+  private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
 
-  /**
-   * Validates and stores an uploaded profile picture on disk.
-   */
+  /** Validates and stores an uploaded profile picture on disk. */
   public String store(MultipartFile file, Long userId) throws IOException {
     validateFile(file);
 
@@ -48,9 +43,7 @@ public class ProfilePictureService {
     return uploadDir + "/" + uniqueFilename;
   }
 
-  /**
-   * Deletes a profile picture file from disk.
-   */
+  /** Deletes a profile picture file from disk. */
   public void delete(String relativePath) {
     if (relativePath == null || relativePath.isBlank()) {
       return; // Nothing to delete
@@ -60,15 +53,17 @@ public class ProfilePictureService {
     try {
       Files.deleteIfExists(filePath);
     } catch (IOException e) {
-      System.err.println("Warning: Could not delete profile picture file: " + relativePath + " — " + e.getMessage());
+      System.err.println(
+          "Warning: Could not delete profile picture file: "
+              + relativePath
+              + " — "
+              + e.getMessage());
     }
   }
 
   // ── Private helper methods ──────────────────────────────────────────────────
 
-  /**
-   * Validates that the uploaded file is an accepted type and within the size limit.
-   */
+  /** Validates that the uploaded file is an accepted type and within the size limit. */
   private void validateFile(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new InvalidFileException("Please select a file to upload.");
@@ -87,9 +82,7 @@ public class ProfilePictureService {
     }
   }
 
-  /**
-   * Extracts the file extension from a filename.
-   */
+  /** Extracts the file extension from a filename. */
   private String getExtension(String filename) {
     if (filename == null || !filename.contains(".")) {
       return "";

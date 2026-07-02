@@ -204,9 +204,7 @@ public class UserController {
   // Profile Picture Endpoints
   // ─────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Upload (or replace) the current user's profile picture.
-   */
+  /** Upload (or replace) the current user's profile picture. */
   @PostMapping(value = "/profile-picture", consumes = "multipart/form-data")
   @Operation(
       summary = "Upload or replace the current user's profile picture",
@@ -231,9 +229,7 @@ public class UserController {
     return ResponseEntity.ok(Map.of("profilePicture", newPicturePath));
   }
 
-  /**
-   * Get the current user's profile picture path.
-   */
+  /** Get the current user's profile picture path. */
   @GetMapping("/profile-picture")
   @Operation(
       summary = "Get the current user's profile picture path",
@@ -245,13 +241,13 @@ public class UserController {
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
     }
-    return ResponseEntity.ok(Map.of("profilePicture",
-        currentUser.getProfilePicture() != null ? currentUser.getProfilePicture() : ""));
+    return ResponseEntity.ok(
+        Map.of(
+            "profilePicture",
+            currentUser.getProfilePicture() != null ? currentUser.getProfilePicture() : ""));
   }
 
-  /**
-   * Delete the current user's profile picture.
-   */
+  /** Delete the current user's profile picture. */
   @DeleteMapping("/profile-picture")
   @Operation(
       summary = "Delete the current user's profile picture",

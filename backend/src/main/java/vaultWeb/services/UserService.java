@@ -88,17 +88,13 @@ public class UserService {
     userRepository.save(user);
   }
 
-  /**
-   * Saves a profile picture path to the user's record in the database.
-   */
+  /** Saves a profile picture path to the user's record in the database. */
   public void updateProfilePicture(User user, String picturePath) {
     user.setProfilePicture(picturePath);
     userRepository.save(user);
   }
 
-  /**
-   * Clears the profile picture from the user's database record (sets it to null).
-   */
+  /** Clears the profile picture from the user's database record (sets it to null). */
   public void removeProfilePicture(User user) {
     user.setProfilePicture(null);
     userRepository.save(user);

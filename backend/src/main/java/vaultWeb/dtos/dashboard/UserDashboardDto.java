@@ -17,7 +17,11 @@ public record UserDashboardDto(
   // Added profilePicture so the dashboard can display the user's avatar.
   // It's a String (relative path) that will be null if no picture is uploaded yet.
   public record ProfileSummary(
-      Long id, String username, int groupCount, int privateChatCount, long messagesSent,
+      Long id,
+      String username,
+      int groupCount,
+      int privateChatCount,
+      long messagesSent,
       String profilePicture) {}
 
   public record GroupSummary(
