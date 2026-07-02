@@ -145,7 +145,8 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: 0 6px 14px -14px var(--color-shadow-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 :host ::ng-deep .cloud-table .p-datatable-table {
@@ -341,5 +342,33 @@
 
   .cloud-toolbar-wrap {
     top: 3.35rem;
+  }
+
+  .cloud-headline {
+    flex-wrap: wrap;
+  }
+
+  .cloud-entry-name {
+    max-width: 14rem;
+  }
+}
+
+@media (max-width: 640px) {
+  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(2),
+  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(3),
+  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(2),
+  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(4),
+  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(4) {
+    display: none;
+  }
+
+  .cloud-entry-name {
+    max-width: 9rem;
   }
 }
