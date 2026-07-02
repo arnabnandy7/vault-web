@@ -36,30 +36,18 @@ export class NavbarComponent implements OnInit {
    * Loads the profile picture when the navbar initializes.
    */
   ngOnInit(): void {
-    this.loadProfilePicture();
-  }
-
-  /**
-   * Fetches the current user's profile picture and sets the URL.
-   */
-  loadProfilePicture(): void {
-    if (!this.authService.isLoggedIn()) {
-      return;
+    if (this.authService.isLoggedIn()) {
+      // Subscribe to reactive profile picture updates
+      this.userService.profilePicUrl$.subscribe((url) => {
+        this.profilePictureUrl = url;
+      });
+      // Fetch initial picture
+      this.userService.getProfilePicture().subscribe({
+        error: () => {
+          this.profilePictureUrl = null;
+        },
+      });
     }
-
-    this.userService.getProfilePicture().subscribe({
-      next: (res) => {
-        // getProfilePictureUrl() converts "uploads/..." → "http://localhost:8080/uploads/..."
-        // Returns null if res.profilePicture is empty or null
-        this.profilePictureUrl = this.userService.getProfilePictureUrl(
-          res.profilePicture,
-        );
-      },
-      error: () => {
-        // If the request fails (e.g. network error), just show the fallback avatar
-        this.profilePictureUrl = null;
-      },
-    });
   }
 
   /**

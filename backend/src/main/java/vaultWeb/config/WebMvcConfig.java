@@ -15,9 +15,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
   /** Registers a URL path pattern to serve files from the local uploads directory. */
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    String parentDir =
-        uploadDir.contains("/") ? uploadDir.substring(0, uploadDir.indexOf("/")) : uploadDir;
-
-    registry.addResourceHandler("/uploads/**").addResourceLocations("file:" + parentDir + "/");
+    registry
+        .addResourceHandler("/uploads/profile-pictures/**")
+        .addResourceLocations("file:" + uploadDir + "/");
   }
 }

@@ -105,7 +105,7 @@ public class SecurityConfig {
                         "/webjars/**",
                         "/docs/**",
                         "/ws-chat/**",
-                        "/uploads/**")
+                        "/uploads/profile-pictures/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

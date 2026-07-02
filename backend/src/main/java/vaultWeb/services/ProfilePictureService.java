@@ -49,7 +49,12 @@ public class ProfilePictureService {
       return; // Nothing to delete
     }
 
-    Path filePath = Paths.get(relativePath);
+    Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+    Path filePath = Paths.get(relativePath).toAbsolutePath().normalize();
+    if (!filePath.startsWith(uploadPath)) {
+      return;
+    }
+
     try {
       Files.deleteIfExists(filePath);
     } catch (IOException e) {

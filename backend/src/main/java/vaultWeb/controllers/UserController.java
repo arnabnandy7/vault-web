@@ -219,12 +219,19 @@ public class UserController {
       throw new UnauthorizedException("User not authenticated");
     }
 
-    if (currentUser.getProfilePicture() != null) {
-      profilePictureService.delete(currentUser.getProfilePicture());
-    }
+    String oldPicturePath = currentUser.getProfilePicture();
 
     String newPicturePath = profilePictureService.store(file, currentUser.getId());
-    userService.updateProfilePicture(currentUser, newPicturePath);
+    try {
+      userService.updateProfilePicture(currentUser, newPicturePath);
+    } catch (RuntimeException ex) {
+      profilePictureService.delete(newPicturePath);
+      throw ex;
+    }
+
+    if (oldPicturePath != null && !oldPicturePath.isBlank()) {
+      profilePictureService.delete(oldPicturePath);
+    }
 
     return ResponseEntity.ok(Map.of("profilePicture", newPicturePath));
   }
@@ -242,9 +249,7 @@ public class UserController {
       throw new UnauthorizedException("User not authenticated");
     }
     return ResponseEntity.ok(
-        Map.of(
-            "profilePicture",
-            currentUser.getProfilePicture() != null ? currentUser.getProfilePicture() : ""));
+        java.util.Collections.singletonMap("profilePicture", currentUser.getProfilePicture()));
   }
 
   /** Delete the current user's profile picture. */

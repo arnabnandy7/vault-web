@@ -446,10 +446,12 @@ export class PrivateChatDialogComponent
   }
 
   getAvatarPicUrl(senderUsername: string | undefined): string | null {
-    if (senderUsername === this.currentUsername) {
-      return this.currentUserPicUrl;
+    if (!senderUsername) {
+      return null;
     }
-    return this.otherUserPicUrl;
+    return senderUsername === this.currentUsername
+      ? this.currentUserPicUrl
+      : this.otherUserPicUrl;
   }
 
   getAvatarFallback(senderUsername: string | undefined): string {

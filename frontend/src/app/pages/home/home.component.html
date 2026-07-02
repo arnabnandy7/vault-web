@@ -79,28 +79,29 @@
             />
           </div>
           <!-- Avatar -->
-          <div
-            class="chat-avatar w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold mr-4 select-none flex-shrink-0"
-            [ngClass]="{
-              'overflow-hidden': getProfilePictureUrl(getOtherUser(chat)),
-            }"
+          <ng-container
+            *ngIf="
+              getProfilePictureUrl(getOtherUser(chat)) as picUrl;
+              else noPic
+            "
           >
-            <ng-container
-              *ngIf="
-                getProfilePictureUrl(getOtherUser(chat)) as picUrl;
-                else noPic
-              "
+            <div
+              class="chat-avatar w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold mr-4 select-none flex-shrink-0 overflow-hidden"
             >
               <img
                 [src]="picUrl"
                 alt="Profile"
                 class="w-full h-full object-cover block"
               />
-            </ng-container>
-            <ng-template #noPic>
+            </div>
+          </ng-container>
+          <ng-template #noPic>
+            <div
+              class="chat-avatar w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold mr-4 select-none flex-shrink-0"
+            >
               {{ getOtherUsername(chat).charAt(0).toUpperCase() }}
-            </ng-template>
-          </div>
+            </div>
+          </ng-template>
 
           <!-- Chat Info -->
           <div class="flex-1">

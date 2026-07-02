@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { UserDto } from '../models/dtos/UserDto';
 
 @Injectable({
@@ -9,6 +9,9 @@ import { UserDto } from '../models/dtos/UserDto';
 })
 export class UserService {
   private apiUrl = environment.mainApiUrl;
+
+  private profilePicUrlSubject = new BehaviorSubject<string | null>(null);
+  public profilePicUrl$ = this.profilePicUrlSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -24,26 +27,41 @@ export class UserService {
   uploadProfilePicture(file: File): Observable<{ profilePicture: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<{ profilePicture: string }>(
-      `${this.apiUrl}/auth/profile-picture`,
-      formData,
-    );
+    return this.http
+      .post<{
+        profilePicture: string;
+      }>(`${this.apiUrl}/auth/profile-picture`, formData)
+      .pipe(
+        tap((res) => {
+          this.profilePicUrlSubject.next(
+            this.getProfilePictureUrl(res.profilePicture),
+          );
+        }),
+      );
   }
 
   /**
    * Fetches the current user's profile picture path from the backend.
    */
   getProfilePicture(): Observable<{ profilePicture: string }> {
-    return this.http.get<{ profilePicture: string }>(
-      `${this.apiUrl}/auth/profile-picture`,
-    );
+    return this.http
+      .get<{ profilePicture: string }>(`${this.apiUrl}/auth/profile-picture`)
+      .pipe(
+        tap((res) => {
+          this.profilePicUrlSubject.next(
+            this.getProfilePictureUrl(res.profilePicture),
+          );
+        }),
+      );
   }
 
   /**
    * Deletes the current user's profile picture.
    */
   deleteProfilePicture(): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/auth/profile-picture`);
+    return this.http
+      .delete<void>(`${this.apiUrl}/auth/profile-picture`)
+      .pipe(tap(() => this.profilePicUrlSubject.next(null)));
   }
 
   /**

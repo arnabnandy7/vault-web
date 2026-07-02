@@ -14,6 +14,7 @@ import vaultWeb.models.User;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserResponseDto {
+  private Long id;
   private String username;
 
   // The relative path to the user's profile picture, e.g. "uploads/profile-pictures/42_abc.jpg"
@@ -21,6 +22,7 @@ public class UserResponseDto {
   private String profilePicture;
 
   public UserResponseDto(User user) {
+    this.id = user.getId();
     this.username = user.getUsername();
     // getProfilePicture() returns null if no picture is set — that's handled by the frontend
     this.profilePicture = user.getProfilePicture();
