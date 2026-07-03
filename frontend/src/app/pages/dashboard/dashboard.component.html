@@ -59,8 +59,12 @@
 
           <div class="group-grid" *ngIf="data.groups.length">
             <article
-              class="group-card"
+              class="group-card cursor-pointer"
               *ngFor="let group of data.groups; trackBy: trackById"
+              role="button"
+              tabindex="0"
+              (click)="openGroupChat(group)"
+              (keydown)="onGroupChatKeydown($event, group)"
             >
               <div class="group-heading">
                 <h3>{{ group.name }}</h3>
@@ -183,7 +187,9 @@
                   let message of recentMessagesLimited;
                   trackBy: trackById
                 "
-                [class.timeline-entry-clickable]="!!message.privateChatId"
+                [class.timeline-entry-clickable]="
+                  !!message.privateChatId || !!message.groupId
+                "
                 role="button"
                 tabindex="0"
                 (click)="openRecentMessage(message)"
@@ -350,3 +356,12 @@
     </div>
   </ng-container>
 </div>
+
+<app-private-chat-dialog
+  *ngIf="selectedGroup"
+  chatMode="group"
+  [username]="selectedGroup.name"
+  [currentUsername]="currentUsername"
+  [groupId]="selectedGroup.id"
+  (closeChat)="closeGroupChat()"
+/>

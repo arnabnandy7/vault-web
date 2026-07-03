@@ -13,9 +13,11 @@ import { DashboardService } from '../../services/dashboard.service';
 import { UserDashboardDto } from '../../models/dtos/UserDashboardDto';
 import { AuthService } from '../../services/auth.service';
 import {
+  GroupSummary,
   MessagePreview,
   PrivateChatSummary,
 } from '../../models/dtos/UserDashboardDto';
+import { PrivateChatDialogComponent } from '../private-chat-dialog/private-chat-dialog.component';
 
 interface StatHighlight {
   label: string;
@@ -27,7 +29,7 @@ interface StatHighlight {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PrivateChatDialogComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -41,7 +43,9 @@ export class DashboardComponent implements OnInit {
   isSavingPassword = false;
   passwordSuccess = '';
   passwordError = '';
+  selectedGroup: GroupSummary | null = null;
   private privateChatParticipants = new Map<number, string>();
+  private groupsById = new Map<number, GroupSummary>();
   private readonly passwordComplexity =
     /(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+/;
 
@@ -68,6 +72,22 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  openGroupChat(group: GroupSummary): void {
+    this.selectedGroup = group;
+  }
+
+  closeGroupChat(): void {
+    this.selectedGroup = null;
+  }
+
+  onGroupChatKeydown(event: KeyboardEvent, group: GroupSummary): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    this.openGroupChat(group);
+  }
+
   onPrivateChatKeydown(event: KeyboardEvent, chat: PrivateChatSummary): void {
     if (event.key !== 'Enter' && event.key !== ' ') {
       return;
@@ -77,12 +97,16 @@ export class DashboardComponent implements OnInit {
   }
 
   openRecentMessage(message: MessagePreview): void {
-    if (!message.privateChatId) {
-      return;
+    if (message.privateChatId) {
+      this.router.navigate(['/'], {
+        queryParams: { privateChatId: message.privateChatId },
+      });
+    } else if (message.groupId) {
+      const group = this.groupsById.get(message.groupId);
+      if (group) {
+        this.openGroupChat(group);
+      }
     }
-    this.router.navigate(['/'], {
-      queryParams: { privateChatId: message.privateChatId },
-    });
   }
 
   onRecentMessageKeydown(event: KeyboardEvent, message: MessagePreview): void {
@@ -136,6 +160,10 @@ export class DashboardComponent implements OnInit {
     return (
       this.dashboard?.recentMessages.slice(0, this.maxRecentMessages) ?? []
     );
+  }
+
+  get currentUsername(): string | null {
+    return this.authService.getUsername();
   }
 
   get hasMoreRecentMessages(): boolean {
@@ -206,6 +234,9 @@ export class DashboardComponent implements OnInit {
         this.dashboard = data;
         this.privateChatParticipants = new Map(
           data.privateChats.map((chat) => [chat.id, chat.participant]),
+        );
+        this.groupsById = new Map(
+          data.groups.map((group) => [group.id, group]),
         );
         this.isLoading = false;
         this.error = null;
