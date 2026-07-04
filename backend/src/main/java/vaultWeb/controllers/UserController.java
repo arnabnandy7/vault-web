@@ -197,6 +197,7 @@ public class UserController {
     return ResponseEntity.noContent().build();
   }
 
+  @ApiRateLimit(capacity = 20, refillTokens = 20, refillDurationMinutes = 1, useIpAddress = true)
   @GetMapping("/security-activity")
   @Operation(
       summary = "Get security activity events for the authenticated user",
@@ -214,6 +215,7 @@ public class UserController {
     return ResponseEntity.ok(events);
   }
 
+  @ApiRateLimit(capacity = 10, refillTokens = 10, refillDurationMinutes = 1, useIpAddress = true)
   @PostMapping("/security-activity/log")
   @Operation(
       summary = "Log a vault security event",
@@ -236,6 +238,11 @@ public class UserController {
     try {
       eventType = SecurityEventType.valueOf(eventTypeStr);
     } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    // Limit logging from client-side to only vault lock/unlock events
+    if (eventType != SecurityEventType.VAULT_UNLOCKED && eventType != SecurityEventType.VAULT_LOCKED) {
       return ResponseEntity.badRequest().build();
     }
 

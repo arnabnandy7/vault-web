@@ -733,6 +733,9 @@ export class CloudComponent implements OnInit {
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
       this.draggedOverPath = path;
+    } else {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
     }
   }
 
@@ -814,6 +817,9 @@ export class CloudComponent implements OnInit {
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
       this.draggedOverPath = path;
+    } else {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
     }
   }
 
