@@ -18,6 +18,7 @@ import {
   PrivateChatSummary,
 } from '../../models/dtos/UserDashboardDto';
 import { PrivateChatDialogComponent } from '../private-chat-dialog/private-chat-dialog.component';
+import { UiToastService } from '../../core/services/ui-toast.service';
 
 interface StatHighlight {
   label: string;
@@ -54,6 +55,7 @@ export class DashboardComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private toast: UiToastService,
   ) {
     this.passwordForm = this.createPasswordForm();
   }
@@ -105,6 +107,11 @@ export class DashboardComponent implements OnInit {
       const group = this.groupsById.get(message.groupId);
       if (group) {
         this.openGroupChat(group);
+      } else {
+        this.toast.warn(
+          'Group unavailable',
+          'This group chat is no longer available from your dashboard.',
+        );
       }
     }
   }
@@ -150,6 +157,13 @@ export class DashboardComponent implements OnInit {
     }
 
     return 'Activity';
+  }
+
+  canOpenRecentMessage(message: MessagePreview): boolean {
+    return (
+      !!message.privateChatId ||
+      (!!message.groupId && this.groupsById.has(message.groupId))
+    );
   }
 
   trackById(_: number, item: { id: number }): number {

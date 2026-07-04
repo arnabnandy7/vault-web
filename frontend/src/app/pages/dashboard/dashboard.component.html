@@ -187,11 +187,9 @@
                   let message of recentMessagesLimited;
                   trackBy: trackById
                 "
-                [class.timeline-entry-clickable]="
-                  !!message.privateChatId || !!message.groupId
-                "
-                role="button"
-                tabindex="0"
+                [class.timeline-entry-clickable]="canOpenRecentMessage(message)"
+                [attr.role]="canOpenRecentMessage(message) ? 'button' : null"
+                [attr.tabindex]="canOpenRecentMessage(message) ? 0 : -1"
                 (click)="openRecentMessage(message)"
                 (keydown)="onRecentMessageKeydown($event, message)"
               >
