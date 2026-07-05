@@ -48,6 +48,8 @@ export class PrivateChatDialogComponent
   @Input() username!: string;
   @Input() currentUsername!: string | null;
   @Input() privateChatId!: number;
+  @Input() currentUserPicUrl: string | null = null;
+  @Input() otherUserPicUrl: string | null = null;
   @Output() closeChat = new EventEmitter<void>();
 
   messages: ChatMessageView[] = [];
@@ -497,6 +499,22 @@ export class PrivateChatDialogComponent
         existing.senderUsername === message.senderUsername &&
         existing.timestamp === message.timestamp,
     );
+  }
+
+  getAvatarPicUrl(senderUsername: string | undefined): string | null {
+    if (!senderUsername) {
+      return null;
+    }
+    return senderUsername === this.currentUsername
+      ? this.currentUserPicUrl
+      : this.otherUserPicUrl;
+  }
+
+  getAvatarFallback(senderUsername: string | undefined): string {
+    if (senderUsername) {
+      return senderUsername.charAt(0).toUpperCase();
+    }
+    return '?';
   }
 
   private handleTypingIndicator(event: TypingIndicatorDto): void {
