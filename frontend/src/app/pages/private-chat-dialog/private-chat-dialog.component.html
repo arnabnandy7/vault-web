@@ -111,6 +111,10 @@
     >
       No messages found for '{{ searchQuery }}'
     </div>
+
+    <div *ngIf="typingIndicatorLabel" class="typing-indicator text-sm">
+      {{ typingIndicatorLabel }}
+    </div>
   </div>
 
   <!-- Input-Field -->
@@ -179,6 +183,7 @@
       #messageInput
       type="text"
       [(ngModel)]="newMessage"
+      (ngModelChange)="onComposerInput($event)"
       name="message"
       class="chat-input flex-1 px-3 py-2 outline-none border"
       placeholder="Type a message..."
