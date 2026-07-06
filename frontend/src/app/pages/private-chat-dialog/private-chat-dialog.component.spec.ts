@@ -11,6 +11,7 @@ import { ChatMessageDto } from '../../models/dtos/ChatMessageDto';
 import { TypingIndicatorDto } from '../../models/dtos/TypingIndicatorDto';
 import { DeviceDto } from '../../models/dtos/DeviceDto';
 import { E2eeService } from '../../services/e2ee.service';
+import { GroupChatService } from '../../services/group-chat.service';
 import { PrivateChatService } from '../../services/private-chat.service';
 import { WebSocketService } from '../../services/web-socket.service';
 import { PrivateChatDialogComponent } from './private-chat-dialog.component';
@@ -29,14 +30,18 @@ describe('PrivateChatDialogComponent typing indicators', () => {
       'sendTypingIndicator',
       'ensureConnected',
       'sendPrivateMessage',
+      'sendGroupMessage',
+      'subscribeToGroupMessages',
     ]);
     wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
     wsService.subscribeToTypingIndicators.and.returnValue(
       typingEvents.asObservable(),
     );
     wsService.sendTypingIndicator.and.returnValue(true);
     wsService.ensureConnected.and.resolveTo(true);
     wsService.sendPrivateMessage.and.returnValue(true);
+    wsService.sendGroupMessage.and.returnValue(true);
 
     const chatService = jasmine.createSpyObj<PrivateChatService>(
       'PrivateChatService',
@@ -44,6 +49,13 @@ describe('PrivateChatDialogComponent typing indicators', () => {
     );
     chatService.getMessages.and.returnValue(of([]));
     chatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const groupChatService = jasmine.createSpyObj<GroupChatService>(
+      'GroupChatService',
+      ['getMessages', 'getDevices'],
+    );
+    groupChatService.getMessages.and.returnValue(of([]));
+    groupChatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
 
     const e2eeService = jasmine.createSpyObj<E2eeService>('E2eeService', [
       'ensureDeviceRegistered',
@@ -62,6 +74,7 @@ describe('PrivateChatDialogComponent typing indicators', () => {
       providers: [
         { provide: WebSocketService, useValue: wsService },
         { provide: PrivateChatService, useValue: chatService },
+        { provide: GroupChatService, useValue: groupChatService },
         { provide: E2eeService, useValue: e2eeService },
         { provide: UiToastService, useValue: toast },
       ],
