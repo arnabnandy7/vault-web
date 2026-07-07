@@ -44,9 +44,12 @@ class ChatControllerTest {
     ChatMessageDto request = createGroupMessageRequest(10L);
     Principal principal = () -> "alice";
     ChatMessage savedMessage = createSavedGroupMessage(10L, "alice");
+    ChatMessageDto response = createGroupMessageRequest(10L);
+    response.setSenderUsername("alice");
 
     when(groupMemberRepository.existsByGroupIdAndUserUsername(10L, "alice")).thenReturn(true);
     when(chatService.saveMessage(any(ChatMessageDto.class))).thenReturn(savedMessage);
+    when(chatService.toDto(savedMessage)).thenReturn(response);
 
     chatController.sendMessage(request, principal);
 
