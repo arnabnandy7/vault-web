@@ -1,13 +1,19 @@
 package vaultWeb.services;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.exceptions.DuplicateUsernameException;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.models.SecurityEvent;
 import vaultWeb.models.User;
+import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.UserRepository;
+import vaultWeb.security.annotations.SecurityEventType;
 
 /**
  * Service class for managing users.
@@ -20,6 +26,7 @@ import vaultWeb.repositories.UserRepository;
 public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final SecurityEventRepository securityEventRepository;
 
   /**
    * Registers a new user by encoding their password and assigning the default role.
@@ -86,6 +93,41 @@ public class UserService {
 
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
+  }
+
+  /**
+   * Retrieves recent security events for a specific user, ordered chronologically (newest first).
+   */
+  public List<SecurityEventDto> getSecurityEvents(User user) {
+    return securityEventRepository.findTop50ByUserOrderByTimestampDesc(user).stream()
+        .map(SecurityEventDto::new)
+        .toList();
+  }
+
+  /** Manually logs a security event (e.g. for external/custom actions). */
+  public void logSecurityEvent(
+      User user,
+      SecurityEventType eventType,
+      String status,
+      HttpServletRequest request,
+      String deviceId) {
+    SecurityEvent event = new SecurityEvent();
+    event.setUser(user);
+    event.setUsername(user != null ? user.getUsername() : "anonymous");
+    event.setEventType(eventType);
+    event.setStatus(status);
+    event.setTimestamp(Instant.now());
+    event.setDeviceId(deviceId);
+    if (request != null) {
+      event.setIpAddress(request.getRemoteAddr());
+      String ua = request.getHeader("User-Agent");
+      event.setUserAgent(ua != null ? ua : "unknown");
+    } else {
+      event.setIpAddress("unknown");
+      event.setUserAgent("unknown");
+    }
+    event.setLocation("Unknown");
+    securityEventRepository.save(event);
   }
 
   /** Saves a profile picture path to the user's record in the database. */

@@ -65,6 +65,12 @@
           routerLinkActive="is-active"
           >Password Manager</a
         >
+        <a
+          routerLink="/security-activity"
+          class="navbar-link"
+          routerLinkActive="is-active"
+          >Security Activity</a
+        >
 
         <!-- Theme Toggle Button -->
         <button
@@ -153,6 +159,13 @@
       class="mobile-link block py-2"
       routerLinkActive="is-active"
       >Password Manager</a
+    >
+    <a
+      routerLink="/security-activity"
+      (click)="closeMobileMenu()"
+      class="mobile-link block py-2"
+      routerLinkActive="is-active"
+      >Security Activity</a
     >
 
     <div *ngIf="hasExternalLinks" class="mobile-external-links">

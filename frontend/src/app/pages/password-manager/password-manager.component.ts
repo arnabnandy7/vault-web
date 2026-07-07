@@ -16,6 +16,7 @@ import { PasswordEntryCreateRequestDto } from '../../models/dtos/PasswordEntryCr
 import { PasswordManagerVaultService } from '../../services/password-manager-vault.service';
 import { PasswordManagerUnlockService } from '../../services/password-manager-unlock.service';
 import { UiToastService } from '../../core/services/ui-toast.service';
+import { UserService } from '../../services/user.service';
 
 const passwordMatchValidator: ValidatorFn = (
   control: AbstractControl,
@@ -72,6 +73,7 @@ export class PasswordManagerComponent implements OnInit {
     private vaultService: PasswordManagerVaultService,
     private unlockService: PasswordManagerUnlockService,
     private toast: UiToastService,
+    private userService: UserService,
   ) {
     this.createForm = this.fb.group(
       {
@@ -333,6 +335,10 @@ export class PasswordManagerComponent implements OnInit {
           'Vault unlocked',
           'Password manager is now available.',
         );
+        this.userService.logSecurityEvent('VAULT_UNLOCKED').subscribe({
+          error: (err) =>
+            console.error('Failed to log vault unlock event', err),
+        });
         this.loadEntries();
       },
       error: (err) => {
@@ -397,6 +403,9 @@ export class PasswordManagerComponent implements OnInit {
         this.entries = [];
         this.vaultGateError = null;
         this.toast.info('Vault locked', 'Sensitive data was hidden.');
+        this.userService.logSecurityEvent('VAULT_LOCKED').subscribe({
+          error: (err) => console.error('Failed to log vault lock event', err),
+        });
       },
       error: () => {
         this.unlockService.clear();

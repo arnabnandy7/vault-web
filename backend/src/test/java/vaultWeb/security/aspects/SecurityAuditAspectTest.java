@@ -20,7 +20,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.user.UserDto;
+import vaultWeb.models.SecurityEvent;
+import vaultWeb.repositories.SecurityEventRepository;
+import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
@@ -33,6 +37,8 @@ class SecurityAuditAspectTest {
   @Mock private JoinPoint joinPoint;
   @Mock private AuditSecurityEvent auditSecurityEvent;
   @Mock private HttpServletRequest request;
+  @Mock private UserRepository userRepository;
+  @Mock private SecurityEventRepository securityEventRepository;
 
   @InjectMocks private SecurityAuditAspect securityAuditAspect;
 
@@ -180,5 +186,40 @@ class SecurityAuditAspectTest {
     assertThat(logEvent.getFormattedMessage()).contains("type=PASSWORD_CHANGE");
     assertThat(logEvent.getFormattedMessage()).contains("username=existinguser");
     assertThat(logEvent.getFormattedMessage()).contains("status=SUCCESS");
+  }
+
+  @Test
+  void logSuccess_withNewDeviceDetected_persistsDeviceId() {
+    DeviceDto deviceDto =
+        new DeviceDto(
+            "device-1", "public-key", 1L, "alice", "2026-07-07T07:00:00Z", "2026-07-07T07:00:00Z");
+
+    when(auditSecurityEvent.value()).thenReturn(SecurityEventType.NEW_DEVICE_DETECTED);
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    when(request.getHeader("User-Agent")).thenReturn("JUnit");
+    when(jwtUtil.extractUsernameFromRequest(request)).thenReturn("alice");
+    when(joinPoint.getArgs()).thenReturn(new Object[] {});
+
+    securityAuditAspect.logSuccess(joinPoint, auditSecurityEvent, deviceDto);
+
+    var eventCaptor = org.mockito.ArgumentCaptor.forClass(SecurityEvent.class);
+    verify(securityEventRepository).save(eventCaptor.capture());
+    assertThat(eventCaptor.getValue().getDeviceId()).isEqualTo("device-1");
+    assertThat(eventCaptor.getValue().getEventType())
+        .isEqualTo(SecurityEventType.NEW_DEVICE_DETECTED);
+  }
+
+  @Test
+  void logSuccess_withExistingDeviceRegistration_doesNotLogNewDeviceEvent() {
+    DeviceDto deviceDto =
+        new DeviceDto(
+            "device-1", "public-key", 1L, "alice", "2026-07-07T07:00:00Z", "2026-07-07T07:05:00Z");
+
+    when(auditSecurityEvent.value()).thenReturn(SecurityEventType.NEW_DEVICE_DETECTED);
+
+    securityAuditAspect.logSuccess(joinPoint, auditSecurityEvent, deviceDto);
+
+    assertThat(listAppender.list).isEmpty();
+    verifyNoInteractions(securityEventRepository);
   }
 }
