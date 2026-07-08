@@ -86,7 +86,11 @@ export class PrivateChatDialogComponent
 {
   @Input() username!: string;
   @Input() currentUsername!: string | null;
-  groupId?: number | null;
+  @Input() privateChatId: number | null = null;
+  @Input() groupId: number | null = null;
+  @Input() groupName: string | null = null;
+  @Input() otherUserPicUrl: string | null = null;
+  @Input() currentUserPicUrl: string | null = null;
   @Output() closeChat = new EventEmitter<void>();
 
   messages: ChatMessageView[] = [];
@@ -170,11 +174,11 @@ export class PrivateChatDialogComponent
   }
 
   private get isGroupChat(): boolean {
-    return this.chatMode === 'group';
+    return !!this.groupId;
   }
 
   private get activeConversationId(): number | undefined {
-    return this.isGroupChat ? this.groupId : this.privateChatId;
+    return (this.isGroupChat ? this.groupId : this.privateChatId) ?? undefined;
   }
 
   private loadMessages(): void {
@@ -216,100 +220,6 @@ export class PrivateChatDialogComponent
         this.decryptAndAppendMessage(msg);
       }
     });
-
-      this.messageSub = this.wsService
-        .subscribeToGroupMessages(this.groupId)
-        .subscribe((msg) => {
-          if (msg.groupId === this.groupId) {
-            this.decryptAndAppendMessage(msg);
-          }
-        });
-    } else if (this.privateChatId) {
-      this.chatService.getMessages(this.privateChatId).subscribe({
-        next: (msgs) => {
-          this.decryptMessages(msgs);
-          this.shouldScroll = true;
-        },
-        error: () => {
-          console.error('Error loading messages for private chat');
-          this.toast.error('Chat load failed', 'Could not load messages.');
-        },
-      });
-
-      this.messageSub = this.wsService
-        .subscribeToPrivateMessages()
-        .subscribe((msg) => {
-          if (msg.privateChatId === this.privateChatId) {
-            this.decryptAndAppendMessage(msg);
-          }
-        });
-    }
-
-    void this.initializeE2ee();
-  }
-
-  ngOnDestroy(): void {
-<<<<<<< HEAD
-    this.stopTyping();
-    this.messageSub?.unsubscribe();
-    this.typingIndicatorSub?.unsubscribe();
-    this.clearTypingTimers();
-  }
-
-  get chatTitle(): string {
-    return this.isGroupChat ? this.username : `Chat with ${this.username}`;
-  }
-
-  private get isGroupChat(): boolean {
-    return this.chatMode === 'group';
-  }
-
-  private get activeConversationId(): number | undefined {
-    return this.isGroupChat ? this.groupId : this.privateChatId;
-  }
-
-  private loadMessages(): void {
-    const conversationId = this.activeConversationId;
-    if (!conversationId) {
-      this.toast.error('Chat unavailable', 'Could not identify this chat.');
-      return;
-    }
-
-    const messages$ = this.isGroupChat
-      ? this.groupChatService.getMessages(conversationId)
-      : this.chatService.getMessages(conversationId);
-
-    messages$.subscribe({
-      next: (msgs) => {
-        this.decryptMessages(msgs);
-        this.shouldScroll = true;
-      },
-      error: () => {
-        console.error('Error loading messages for chat');
-        this.toast.error('Chat load failed', 'Could not load messages.');
-      },
-    });
-  }
-
-  private subscribeToActiveMessages(): Subscription {
-    if (this.isGroupChat && this.groupId) {
-      return this.wsService
-        .subscribeToGroupMessages(this.groupId)
-        .subscribe((msg) => {
-          if (msg.groupId === this.groupId) {
-            this.decryptAndAppendMessage(msg);
-          }
-        });
-    }
-
-    return this.wsService.subscribeToPrivateMessages().subscribe((msg) => {
-      if (msg.privateChatId === this.privateChatId) {
-        this.decryptAndAppendMessage(msg);
-      }
-    });
-=======
-    this.messageSub?.unsubscribe();
->>>>>>> 529d418e (feat: Implement multi-user group chats with E2EE and participant management)
   }
 
   ngAfterViewChecked(): void {
@@ -408,7 +318,8 @@ export class PrivateChatDialogComponent
           (msg): msg is ChatMessageView => msg !== null,
         );
         if (successfulMessages.length !== viewMessages.length) {
-              conversationId: this.activeConversationId,
+          console.warn('Some messages failed to decrypt', {
+            conversationId: this.activeConversationId,
             totalMessages: viewMessages.length,
             decryptedMessages: successfulMessages.length,
           });
@@ -595,7 +506,7 @@ export class PrivateChatDialogComponent
       const message: ChatMessageDto = {
         timestamp: clientTimestamp,
         senderUsername: this.currentUsername ? this.currentUsername : 'Unknown',
-        privateChatId: this.isGroupChat ? undefined : this.privateChatId,
+        privateChatId: (this.isGroupChat ? undefined : this.privateChatId) ?? undefined,
         groupId: this.isGroupChat ? this.groupId : null,
         senderDeviceId: payload.senderDeviceId,
         e2eePayload: JSON.stringify(payload),
@@ -941,8 +852,9 @@ getAvatarPicUrl(senderUsername: string | undefined): string | null {
       clearInterval(this.typingStaleSweepTimer);
       this.typingStaleSweepTimer = null;
     }
+  }
 
-// Group Management Methods
+  // Group Management Methods
   toggleGroupDetails(): void {
     this.showGroupDetails = !this.showGroupDetails;
     if (this.showGroupDetails) {

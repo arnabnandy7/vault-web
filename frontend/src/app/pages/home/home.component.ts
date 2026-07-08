@@ -421,5 +421,4 @@ export class HomeComponent implements OnInit {
   private isHttpStatusZero(err: any): boolean {
     return err && err.status === 0;
   }
-  }
 }

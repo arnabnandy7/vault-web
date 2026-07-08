@@ -107,20 +107,6 @@ export class DashboardComponent implements OnInit {
     this.openPrivateChat(chat);
   }
 
-  openGroupChat(group: GroupSummary): void {
-    this.router.navigate(['/'], {
-      queryParams: { groupId: group.id, groupName: group.name },
-    });
-  }
-
-  onGroupChatKeydown(event: KeyboardEvent, group: GroupSummary): void {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-    event.preventDefault();
-    this.openGroupChat(group);
-  }
-
   openRecentMessage(message: MessagePreview): void {
     if (message.privateChatId) {
       this.router.navigate(['/'], {
