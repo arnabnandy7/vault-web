@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { GroupDto } from '../models/dtos/GroupDto';
-
 @Injectable({
   providedIn: 'root',
 })
@@ -15,6 +14,7 @@ export class GroupService {
   getUserGroups(): Observable<GroupDto[]> {
     return this.http.get<GroupDto[]>(`${this.apiUrl}/my-groups`);
   }
+
 
   getGroupDetails(groupId: number): Observable<GroupDto> {
     return this.http.get<GroupDto>(`${this.apiUrl}/${groupId}`);
