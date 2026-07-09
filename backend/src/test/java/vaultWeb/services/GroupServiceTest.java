@@ -300,4 +300,79 @@ class GroupServiceTest {
 
     verify(groupRepository, times(1)).deleteById(groupId);
   }
+
+  @Test
+  void shouldGetUserGroups() {
+    User user = createUser(2L);
+    Group group1 = createGroup(10L, true);
+    Group group2 = createGroup(11L, false);
+    GroupMember membership1 = new GroupMember(group1, user, Role.USER);
+    GroupMember membership2 = new GroupMember(group2, user, Role.ADMIN);
+
+    when(groupMemberRepository.findAllByUser(user)).thenReturn(List.of(membership1, membership2));
+
+    List<Group> result = groupService.getUserGroups(user);
+
+    assertEquals(2, result.size());
+    assertEquals(group1, result.get(0));
+    assertEquals(group2, result.get(1));
+  }
+
+  @Test
+  void shouldReturnEmptyList_WhenUserHasNoGroups() {
+    User user = createUser(2L);
+    when(groupMemberRepository.findAllByUser(user)).thenReturn(List.of());
+
+    List<Group> result = groupService.getUserGroups(user);
+
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void shouldAddMemberSuccessfully() {
+    Group group = createGroup(10L, true);
+    User user = createUser(2L);
+
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+    when(groupMemberRepository.findByGroupAndUser(group, user)).thenReturn(Optional.empty());
+
+    Group result = groupService.addMember(10L, 2L);
+
+    assertEquals(group, result);
+    verify(groupMemberRepository, times(1)).save(any(GroupMember.class));
+  }
+
+  @Test
+  void shouldFailAddMember_WhenGroupNotFound() {
+    when(groupRepository.findById(999L)).thenReturn(Optional.empty());
+
+    assertThrows(GroupNotFoundException.class, () -> groupService.addMember(999L, 2L));
+    verify(groupMemberRepository, times(0)).save(any(GroupMember.class));
+  }
+
+  @Test
+  void shouldFailAddMember_WhenUserNotFound() {
+    Group group = createGroup(10L, true);
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+    assertThrows(UserNotFoundException.class, () -> groupService.addMember(10L, 999L));
+    verify(groupMemberRepository, times(0)).save(any(GroupMember.class));
+  }
+
+  @Test
+  void shouldFailAddMember_WhenAlreadyMember() {
+    Group group = createGroup(10L, true);
+    User user = createUser(2L);
+    GroupMember existingMember = new GroupMember(group, user, Role.USER);
+
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+    when(groupMemberRepository.findByGroupAndUser(group, user))
+        .thenReturn(Optional.of(existingMember));
+
+    assertThrows(AlreadyMemberException.class, () -> groupService.addMember(10L, 2L));
+    verify(groupMemberRepository, times(0)).save(any(GroupMember.class));
+  }
 }

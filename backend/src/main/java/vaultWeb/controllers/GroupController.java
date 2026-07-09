@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
+import vaultWeb.dtos.GroupResponseDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
@@ -70,9 +71,10 @@ public class GroupController {
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
   @ApiResponse(responseCode = "404", description = "Group was not found.")
-  public ResponseEntity<Group> getGroupById(@PathVariable Long id) {
+  public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long id) {
     return groupService
         .getGroupById(id)
+        .map(GroupResponseDto::from)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
@@ -287,12 +289,13 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
-  public ResponseEntity<List<Group>> getMyGroups() {
+  public ResponseEntity<List<GroupResponseDto>> getMyGroups() {
     User currentUser = authService.getCurrentUser();
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
     }
-    List<Group> userGroups = groupService.getUserGroups(currentUser);
+    List<GroupResponseDto> userGroups =
+        groupService.getUserGroups(currentUser).stream().map(GroupResponseDto::from).toList();
     return ResponseEntity.ok(userGroups);
   }
 
@@ -313,9 +316,9 @@ public class GroupController {
   @ApiResponse(
       responseCode = "403",
       description = "Unauthorized request. You must have admin privileges.")
-  public ResponseEntity<Group> addMemberToGroup(
+  public ResponseEntity<GroupResponseDto> addMemberToGroup(
       @PathVariable Long groupId, @PathVariable Long userId) {
     Group group = groupService.addMember(groupId, userId);
-    return ResponseEntity.ok(group);
+    return ResponseEntity.ok(GroupResponseDto.from(group));
   }
 }

@@ -15,7 +15,6 @@ export class GroupService {
     return this.http.get<GroupDto[]>(`${this.apiUrl}/my-groups`);
   }
 
-
   getGroupDetails(groupId: number): Observable<GroupDto> {
     return this.http.get<GroupDto>(`${this.apiUrl}/${groupId}`);
   }

@@ -63,6 +63,10 @@
         <li
           *ngFor="let group of filteredUserGroups"
           (click)="openGroupChat(group)"
+          (keydown)="onGroupChatKeydown($event, group)"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'Open group chat ' + group.name"
           [class.cursor-pointer]="true"
           class="chat-row flex items-center px-4 py-3 transition hover:bg-gray-100"
         >

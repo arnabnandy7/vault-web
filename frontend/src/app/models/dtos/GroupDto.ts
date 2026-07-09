@@ -1,8 +1,11 @@
-import { UserDto } from './UserDto';
+export interface GroupMemberUserDto {
+  id: number;
+  username: string;
+}
 
 export interface GroupMemberDto {
   id: number;
-  user: UserDto;
+  user: GroupMemberUserDto;
   role: 'ADMIN' | 'USER';
 }
 

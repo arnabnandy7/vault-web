@@ -216,6 +216,14 @@ export class HomeComponent implements OnInit {
     this.selectedGroupId = group.id;
   }
 
+  onGroupChatKeydown(event: KeyboardEvent, group: GroupDto) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    this.openGroupChat(group);
+  }
+
   private tryOpenRequestedPrivateChat(): void {
     if (!this.requestedPrivateChatId || this.isLoading) {
       return;

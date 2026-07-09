@@ -23,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
+import vaultWeb.dtos.GroupResponseDto;
 import vaultWeb.exceptions.AlreadyMemberException;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
@@ -30,7 +31,9 @@ import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Device;
 import vaultWeb.models.Group;
+import vaultWeb.models.GroupMember;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.Role;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.DeviceRepository;
 import vaultWeb.repositories.GroupMemberRepository;
@@ -119,16 +122,17 @@ class GroupControllerTest {
   void shouldGetGroupByIdSuccessfully() {
     Group group = createTestGroup(1L, "Group 1");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-    ResponseEntity<Group> response = groupController.getGroupById(1L);
+    ResponseEntity<GroupResponseDto> response = groupController.getGroupById(1L);
     assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(group, response.getBody());
+    assertEquals(1L, response.getBody().getId());
+    assertEquals("Group 1", response.getBody().getName());
     verify(groupService, times(1)).getGroupById(1L);
   }
 
   @Test
   void shouldReturnNotFound_WhenGroupDoesNotExist() {
     when(groupService.getGroupById(999L)).thenReturn(Optional.empty());
-    ResponseEntity<Group> response = groupController.getGroupById(999L);
+    ResponseEntity<GroupResponseDto> response = groupController.getGroupById(999L);
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     verify(groupService, times(1)).getGroupById(999L);
   }
@@ -375,5 +379,53 @@ class GroupControllerTest {
   void shouldRejectGetGroupMessages_WhenUnauthenticated() {
     assertThrows(UnauthorizedException.class, () -> groupController.getGroupMessages(10L, null));
     verify(chatMessageRepository, times(0)).findByGroupIdOrderByTimestampAsc(any());
+  }
+
+  @Test
+  void shouldGetMyGroups_AsDtoWithoutLeakingUserEntity() {
+    User currentUser = createTestUser(1L, "member");
+    User otherMember = createTestUser(2L, "friend");
+    Group group = createTestGroup(10L, "My Group");
+    GroupMember membership = new GroupMember(group, otherMember, Role.USER);
+    membership.setId(100L);
+    group.setMembers(List.of(membership));
+
+    when(authService.getCurrentUser()).thenReturn(currentUser);
+    when(groupService.getUserGroups(currentUser)).thenReturn(List.of(group));
+
+    ResponseEntity<List<GroupResponseDto>> response = groupController.getMyGroups();
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(1, response.getBody().size());
+    GroupResponseDto dto = response.getBody().get(0);
+    assertEquals(10L, dto.getId());
+    assertEquals("My Group", dto.getName());
+    assertEquals(1, dto.getMembers().size());
+    // The response carries only the minimal user projection, never the User entity/password.
+    assertEquals(2L, dto.getMembers().get(0).getUser().getId());
+    assertEquals("friend", dto.getMembers().get(0).getUser().getUsername());
+    assertEquals("USER", dto.getMembers().get(0).getRole());
+  }
+
+  @Test
+  void shouldRejectGetMyGroups_WhenUnauthenticated() {
+    when(authService.getCurrentUser()).thenReturn(null);
+
+    assertThrows(UnauthorizedException.class, () -> groupController.getMyGroups());
+    verify(groupService, times(0)).getUserGroups(any());
+  }
+
+  @Test
+  void shouldAddMemberToGroup_ReturningDto() {
+    Group group = createTestGroup(10L, "My Group");
+    group.setMembers(List.of());
+
+    when(groupService.addMember(10L, 2L)).thenReturn(group);
+
+    ResponseEntity<GroupResponseDto> response = groupController.addMemberToGroup(10L, 2L);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(10L, response.getBody().getId());
+    verify(groupService, times(1)).addMember(10L, 2L);
   }
 }
