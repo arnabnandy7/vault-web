@@ -113,15 +113,12 @@ export class DashboardComponent implements OnInit {
         queryParams: { privateChatId: message.privateChatId },
       });
     } else if (message.groupId) {
-      const group = this.groupsById.get(message.groupId);
-      if (group) {
-        this.openGroupChat(group);
-      } else {
-        this.toast.warn(
-          'Group unavailable',
-          'This group chat is no longer available from your dashboard.',
-        );
-      }
+      const groupName =
+        this.dashboard?.groups.find((g) => g.id === message.groupId)?.name ||
+        'Group Chat';
+      this.router.navigate(['/'], {
+        queryParams: { groupId: message.groupId, groupName },
+      });
     }
   }
 

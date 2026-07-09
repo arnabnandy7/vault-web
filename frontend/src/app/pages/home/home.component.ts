@@ -13,48 +13,60 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { UiToastService } from '../../core/services/ui-toast.service';
+import { GroupService } from '../../services/group.service';
+import { GroupDto } from '../../models/dtos/GroupDto';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
     CommonModule,
-    PrivateChatDialogComponent,
     FormsModule,
+    PrivateChatDialogComponent,
     ButtonModule,
     DialogModule,
     InputTextModule,
   ],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss',
+  styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
+  private readonly USER_EXPANSION_SESSION_KEY = 'home:isAllUsersExpanded';
+
   users: UserDto[] = [];
   privateChats: PrivateChatDto[] = [];
+  userGroups: GroupDto[] = [];
+
+  filteredUsers: UserDto[] = [];
+  filteredPrivateChats: PrivateChatDto[] = [];
+  filteredUserGroups: GroupDto[] = [];
+
   isLoading = true;
   error: string | null = null;
+
   selectedUsername: string | null = null;
   privateChatId: number | null = null;
+  selectedGroupName: string | null = null;
+  selectedGroupId: number | null = null;
 
-  currentUsername: string | null = null;
+  searchText = '';
+  isAllUsersExpanded = false;
+
+  // Edit/Clear chats properties
   isEditMode = false;
   selectedChatIds: Set<number> = new Set();
   showClearConfirmDialog = false;
   isProcessing = false;
-  showGroupDialog: boolean = false;
+
+  // Create Group Properties
+  showGroupDialog = false;
   newGroupName = '';
   groupDescription = '';
-  private requestedPrivateChatId: number | null = null;
-  searchText: string = '';
-  filteredUsers: UserDto[] = [];
-  filteredPrivateChats: PrivateChatDto[] = [];
-  isAllUsersExpanded = false;
-  private readonly USER_EXPANSION_SESSION_KEY = 'homeAllUsersSessionKey';
 
-  private isHttpStatusZero(err: unknown): boolean {
-    const candidate = err as { status?: number };
-    return candidate?.status === 0;
-  }
+  currentUsername: string | null = null;
+  private requestedPrivateChatId: number | null = null;
+  private requestedGroupId: number | null = null;
+  private requestedGroupName: string | null = null;
 
   constructor(
     private userService: UserService,
@@ -63,6 +75,7 @@ export class HomeComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private toast: UiToastService,
+    private groupService: GroupService,
   ) {}
 
   ngOnInit(): void {
@@ -74,7 +87,17 @@ export class HomeComponent implements OnInit {
         Number.isInteger(parsedChatId) && parsedChatId > 0
           ? parsedChatId
           : null;
+
+      const rawGroupId = params.get('groupId');
+      const parsedGroupId = rawGroupId ? Number(rawGroupId) : NaN;
+      this.requestedGroupId =
+        Number.isInteger(parsedGroupId) && parsedGroupId > 0
+          ? parsedGroupId
+          : null;
+      this.requestedGroupName = params.get('groupName');
+
       this.tryOpenRequestedPrivateChat();
+      this.tryOpenRequestedGroupChat();
     });
 
     if (!this.currentUsername) {
@@ -94,22 +117,32 @@ export class HomeComponent implements OnInit {
     forkJoin({
       users: this.userService.getAllUsers(),
       chats: this.privateChatService.getUserPrivateChats(),
+      groups: this.groupService.getUserGroups(),
     }).subscribe({
-      next: ({ users, chats }) => {
+      next: ({ users, chats, groups }) => {
         this.users = users || [];
         this.privateChats = chats || [];
+        this.userGroups = groups || [];
         this.filteredUsers = this.filterUsers(this.searchText, this.users);
         this.filteredPrivateChats = this.filterPrivateChats(
           this.searchText,
           this.privateChats,
         );
+        this.filteredUserGroups = this.filterGroups(
+          this.searchText,
+          this.userGroups,
+        );
         this.isLoading = false;
         this.tryOpenRequestedPrivateChat();
+        this.tryOpenRequestedGroupChat();
       },
       error: (err: unknown) => {
         this.error = 'Failed to Load data.';
         if (!this.isHttpStatusZero(err)) {
-          this.toast.error('Load failed', 'Could not load chats and users.');
+          this.toast.error(
+            'Load failed',
+            'Could not load chats, users, and groups.',
+          );
         }
         this.isLoading = false;
       },
@@ -140,6 +173,8 @@ export class HomeComponent implements OnInit {
   closeChat(): void {
     this.selectedUsername = null;
     this.privateChatId = null;
+    this.selectedGroupId = null;
+    this.selectedGroupName = null;
   }
 
   toggleEditMode() {
@@ -175,6 +210,20 @@ export class HomeComponent implements OnInit {
     this.privateChatId = chat.id;
   }
 
+  openGroupChat(group: GroupDto) {
+    if (this.isEditMode) return;
+    this.selectedGroupName = group.name;
+    this.selectedGroupId = group.id;
+  }
+
+  onGroupChatKeydown(event: KeyboardEvent, group: GroupDto) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    this.openGroupChat(group);
+  }
+
   private tryOpenRequestedPrivateChat(): void {
     if (!this.requestedPrivateChatId || this.isLoading) {
       return;
@@ -192,6 +241,29 @@ export class HomeComponent implements OnInit {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { privateChatId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private tryOpenRequestedGroupChat(): void {
+    if (!this.requestedGroupId || this.isLoading) {
+      return;
+    }
+
+    const groupToOpen = this.userGroups.find(
+      (g) => g.id === this.requestedGroupId,
+    );
+    if (!groupToOpen) {
+      return;
+    }
+
+    this.openGroupChat(groupToOpen);
+    this.requestedGroupId = null;
+    this.requestedGroupName = null;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { groupId: null, groupName: null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -290,6 +362,10 @@ export class HomeComponent implements OnInit {
       this.searchText,
       this.privateChats,
     );
+    this.filteredUserGroups = this.filterGroups(
+      this.searchText,
+      this.userGroups,
+    );
   }
 
   private filterUsers(searchText: string, users: UserDto[]) {
@@ -307,6 +383,12 @@ export class HomeComponent implements OnInit {
     return privateChats.filter((chat) =>
       this.matchUserName(this.getOtherUsername(chat), term),
     );
+  }
+
+  private filterGroups(searchText: string, groups: GroupDto[]) {
+    if (!searchText.trim()) return [...groups];
+    const term = searchText.trim().toLowerCase();
+    return groups.filter((group) => group.name.toLowerCase().includes(term));
   }
 
   private matchUserName(userName: string, term: string): boolean {
@@ -342,5 +424,10 @@ export class HomeComponent implements OnInit {
   getProfilePictureUrl(user: UserDto | undefined): string | null {
     if (!user || !user.profilePicture) return null;
     return this.userService.getProfilePictureUrl(user.profilePicture);
+  }
+
+  private isHttpStatusZero(err: unknown): boolean {
+    const candidate = err as { status?: number };
+    return candidate?.status === 0;
   }
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
+import vaultWeb.dtos.GroupResponseDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
@@ -70,9 +71,10 @@ public class GroupController {
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
   @ApiResponse(responseCode = "404", description = "Group was not found.")
-  public ResponseEntity<Group> getGroupById(@PathVariable Long id) {
+  public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long id) {
     return groupService
         .getGroupById(id)
+        .map(GroupResponseDto::from)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
@@ -274,5 +276,49 @@ public class GroupController {
       @PathVariable Long groupId, @PathVariable Long userId) {
     Group group = groupService.removeMember(groupId, userId);
     return ResponseEntity.ok(group);
+  }
+
+  /**
+   * Retrieves all groups the current user is a member of.
+   *
+   * @return a list of groups
+   */
+  @GetMapping("/my-groups")
+  @Operation(summary = "Retrieves all groups the current user is a member of.")
+  @ApiResponse(responseCode = "200", description = "Groups retrieved successfully")
+  @ApiResponse(
+      responseCode = "401",
+      description = "Unauthorized request. You must provide an authentication token.")
+  public ResponseEntity<List<GroupResponseDto>> getMyGroups() {
+    User currentUser = authService.getCurrentUser();
+    if (currentUser == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+    List<GroupResponseDto> userGroups =
+        groupService.getUserGroups(currentUser).stream().map(GroupResponseDto::from).toList();
+    return ResponseEntity.ok(userGroups);
+  }
+
+  /**
+   * Adds a member to a group. Admin privileges required.
+   *
+   * @param groupId the ID of the group
+   * @param userId the ID of the user to add
+   * @return the updated group
+   */
+  @AdminOnly
+  @PostMapping("/{groupId}/members/{userId}")
+  @Operation(summary = "Add a member to a group. Admin privileges required")
+  @ApiResponse(responseCode = "200", description = "Member added successfully")
+  @ApiResponse(
+      responseCode = "401",
+      description = "Unauthorized request. You must provide an authentication token.")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Unauthorized request. You must have admin privileges.")
+  public ResponseEntity<GroupResponseDto> addMemberToGroup(
+      @PathVariable Long groupId, @PathVariable Long userId) {
+    Group group = groupService.addMember(groupId, userId);
+    return ResponseEntity.ok(GroupResponseDto.from(group));
   }
 }

@@ -22,6 +22,10 @@ import { E2eeService } from '../../services/e2ee.service';
 import { DeviceDto } from '../../models/dtos/DeviceDto';
 import { UiToastService } from '../../core/services/ui-toast.service';
 import { GroupChatService } from '../../services/group-chat.service';
+import { GroupService } from '../../services/group.service';
+import { UserService } from '../../services/user.service';
+import { GroupDto } from '../../models/dtos/GroupDto';
+import { UserDto } from '../../models/dtos/UserDto';
 import {
   CHAT_EMOJIS,
   CHAT_STICKERS,
@@ -82,11 +86,11 @@ export class PrivateChatDialogComponent
 {
   @Input() username!: string;
   @Input() currentUsername!: string | null;
-  @Input() privateChatId?: number;
-  @Input() groupId?: number;
-  @Input() chatMode: 'private' | 'group' = 'private';
-  @Input() currentUserPicUrl: string | null = null;
+  @Input() privateChatId: number | null = null;
+  @Input() groupId: number | null = null;
+  @Input() groupName: string | null = null;
   @Input() otherUserPicUrl: string | null = null;
+  @Input() currentUserPicUrl: string | null = null;
   @Output() closeChat = new EventEmitter<void>();
 
   messages: ChatMessageView[] = [];
@@ -121,15 +125,28 @@ export class PrivateChatDialogComponent
   private readonly typingStaleTimeoutMs = 8000;
   private readonly typingUsers = new Map<string, number>();
 
+  // Group Management properties
+  showGroupDetails = false;
+  groupDetails: GroupDto | null = null;
+  allUsers: UserDto[] = [];
+  usersToInvite: UserDto[] = [];
+  currentUserRole: 'ADMIN' | 'USER' = 'USER';
+  isGroupAdmin = false;
+
   constructor(
     private wsService: WebSocketService,
     private chatService: PrivateChatService,
     private groupChatService: GroupChatService,
     private e2eeService: E2eeService,
     private toast: UiToastService,
+    private groupService: GroupService,
+    private userService: UserService,
   ) {}
 
   ngOnInit(): void {
+    if (this.groupId) {
+      this.loadGroupDetails();
+    }
     this.loadMessages();
 
     this.messageSub = this.subscribeToActiveMessages();
@@ -157,11 +174,11 @@ export class PrivateChatDialogComponent
   }
 
   private get isGroupChat(): boolean {
-    return this.chatMode === 'group';
+    return !!this.groupId;
   }
 
   private get activeConversationId(): number | undefined {
-    return this.isGroupChat ? this.groupId : this.privateChatId;
+    return (this.isGroupChat ? this.groupId : this.privateChatId) ?? undefined;
   }
 
   private loadMessages(): void {
@@ -285,7 +302,7 @@ export class PrivateChatDialogComponent
           return await this.toViewMessage(msg);
         } catch (err) {
           console.error(
-            'Failed to decrypt message in private chat',
+            'Failed to decrypt message',
             {
               conversationId: this.activeConversationId,
               messageIndex: index,
@@ -301,7 +318,7 @@ export class PrivateChatDialogComponent
           (msg): msg is ChatMessageView => msg !== null,
         );
         if (successfulMessages.length !== viewMessages.length) {
-          console.warn('Some messages failed to decrypt for private chat', {
+          console.warn('Some messages failed to decrypt', {
             conversationId: this.activeConversationId,
             totalMessages: viewMessages.length,
             decryptedMessages: successfulMessages.length,
@@ -313,7 +330,7 @@ export class PrivateChatDialogComponent
       })
       .catch((err) => {
         console.error(
-          'Failed to decrypt one or more messages for private chat',
+          'Failed to decrypt one or more messages',
           this.activeConversationId,
           err,
         );
@@ -328,7 +345,7 @@ export class PrivateChatDialogComponent
       .then((viewMessage) => {
         if (!viewMessage) {
           console.warn(
-            'Failed to decrypt incoming message for private chat',
+            'Failed to decrypt incoming message',
             this.activeConversationId,
           );
           return;
@@ -342,7 +359,7 @@ export class PrivateChatDialogComponent
       })
       .catch((err) => {
         console.error(
-          'Error decrypting incoming message for private chat',
+          'Error decrypting incoming message',
           this.activeConversationId,
           err,
         );
@@ -389,8 +406,8 @@ export class PrivateChatDialogComponent
       stickerSrc,
       stickerLabel,
       senderUsername: message.senderUsername,
-      privateChatId: message.privateChatId,
-      groupId: message.groupId,
+      privateChatId: message.privateChatId || undefined,
+      groupId: message.groupId || undefined,
       timestamp,
     };
   }
@@ -462,8 +479,6 @@ export class PrivateChatDialogComponent
       this.devices = await this.fetchDevices();
 
       if (!this.devices.length) {
-        // One forced refresh before failing keeps the common path fast while handling
-        // participant-device changes reliably.
         this.devices = await this.fetchDevices(true);
         if (!this.devices.length) {
           console.error('No devices available for encryption');
@@ -491,7 +506,8 @@ export class PrivateChatDialogComponent
       const message: ChatMessageDto = {
         timestamp: clientTimestamp,
         senderUsername: this.currentUsername ? this.currentUsername : 'Unknown',
-        privateChatId: this.isGroupChat ? undefined : this.privateChatId,
+        privateChatId:
+          (this.isGroupChat ? undefined : this.privateChatId) ?? undefined,
         groupId: this.isGroupChat ? this.groupId : null,
         senderDeviceId: payload.senderDeviceId,
         e2eePayload: JSON.stringify(payload),
@@ -555,7 +571,7 @@ export class PrivateChatDialogComponent
           resolve(devices);
         },
         error: (error) => {
-          console.error('Error loading devices for private chat', error);
+          console.error('Error loading devices for chat', error);
           resolve([]);
         },
       });
@@ -837,5 +853,107 @@ export class PrivateChatDialogComponent
       clearInterval(this.typingStaleSweepTimer);
       this.typingStaleSweepTimer = null;
     }
+  }
+
+  // Group Management Methods
+  toggleGroupDetails(): void {
+    this.showGroupDetails = !this.showGroupDetails;
+    if (this.showGroupDetails) {
+      this.loadGroupDetails();
+      this.loadAllUsers();
+    }
+  }
+
+  loadGroupDetails(): void {
+    if (!this.groupId) return;
+    this.groupService.getGroupDetails(this.groupId).subscribe({
+      next: (group) => {
+        this.groupDetails = group;
+        const currentMember = group.members?.find(
+          (m) => m.user.username === this.currentUsername,
+        );
+        if (currentMember) {
+          this.currentUserRole = currentMember.role;
+          this.isGroupAdmin = currentMember.role === 'ADMIN';
+        }
+        this.filterInviteUsers();
+      },
+      error: (err) => {
+        console.error('Error loading group details:', err);
+      },
+    });
+  }
+
+  loadAllUsers(): void {
+    this.userService.getAllUsers().subscribe({
+      next: (users) => {
+        this.allUsers = users;
+        this.filterInviteUsers();
+      },
+    });
+  }
+
+  filterInviteUsers(): void {
+    if (!this.groupDetails || !this.allUsers.length) {
+      this.usersToInvite = [];
+      return;
+    }
+    const memberIds = new Set(
+      this.groupDetails.members?.map((m) => m.user.id) || [],
+    );
+    this.usersToInvite = this.allUsers.filter((u) => !memberIds.has(u.id));
+  }
+
+  addMemberToGroup(userId: number): void {
+    if (!this.groupId) return;
+    this.groupService.addMember(this.groupId, userId).subscribe({
+      next: () => {
+        this.toast.success('Member added', 'User was added to the group.');
+        this.loadGroupDetails();
+        void this.refreshDevices();
+      },
+      error: (err) => {
+        console.error('Error adding member to group:', err);
+        this.toast.error('Failed to add member', 'Make sure you are an admin.');
+      },
+    });
+  }
+
+  removeMemberFromGroup(userId: number): void {
+    if (!this.groupId) return;
+    this.groupService.removeMember(this.groupId, userId).subscribe({
+      next: () => {
+        this.toast.success(
+          'Member removed',
+          'User was removed from the group.',
+        );
+        this.loadGroupDetails();
+        void this.refreshDevices();
+      },
+      error: (err) => {
+        console.error('Error removing member from group:', err);
+        this.toast.error(
+          'Failed to remove member',
+          'Make sure you are an admin and at least one admin remains.',
+        );
+      },
+    });
+  }
+
+  leaveGroup(): void {
+    if (!this.groupId) return;
+    this.groupService.leaveGroup(this.groupId).subscribe({
+      next: () => {
+        this.toast.success('Group left', 'You left the group.');
+        this.onClose();
+      },
+      error: (err) => {
+        console.error('Error leaving group:', err);
+        this.toast.error(
+          'Failed to leave group',
+          'Make sure another admin exists if you are the last admin.',
+        );
+      },
+    });
   }
 }
