@@ -15,6 +15,8 @@ import { GroupChatService } from '../../services/group-chat.service';
 import { PrivateChatService } from '../../services/private-chat.service';
 import { WebSocketService } from '../../services/web-socket.service';
 import { PrivateChatDialogComponent } from './private-chat-dialog.component';
+import { GroupService } from '../../services/group.service';
+import { UserService } from '../../services/user.service';
 
 describe('PrivateChatDialogComponent typing indicators', () => {
   let fixture: ComponentFixture<PrivateChatDialogComponent>;
@@ -69,6 +71,13 @@ describe('PrivateChatDialogComponent typing indicators', () => {
       'warn',
     ]);
 
+    const groupService = jasmine.createSpyObj<GroupService>('GroupService', [
+      'getGroupDetails',
+    ]);
+    const userService = jasmine.createSpyObj<UserService>('UserService', [
+      'getProfilePictureUrl',
+    ]);
+
     await TestBed.configureTestingModule({
       imports: [PrivateChatDialogComponent],
       providers: [
@@ -77,6 +86,8 @@ describe('PrivateChatDialogComponent typing indicators', () => {
         { provide: GroupChatService, useValue: groupChatService },
         { provide: E2eeService, useValue: e2eeService },
         { provide: UiToastService, useValue: toast },
+        { provide: GroupService, useValue: groupService },
+        { provide: UserService, useValue: userService },
       ],
     }).compileComponents();
 
