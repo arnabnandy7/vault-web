@@ -166,6 +166,9 @@
           (drop)="onDrop($event, entry.kind === 'folder' ? entry.path : null)"
           (dragover)="onDragOver($event, entry.path, entry.kind === 'folder')"
           (dragleave)="onDragLeave()"
+          [pTooltip]="searchActive ? getParentRelativePath(entry.path) : ''"
+          tooltipPosition="top"
+          tooltipStyleClass="search-path-tooltip"
         >
           <td>
             <button

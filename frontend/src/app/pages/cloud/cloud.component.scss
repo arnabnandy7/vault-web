@@ -664,3 +664,9 @@
     display: none !important;
   }
 }
+
+::ng-deep .search-path-tooltip .p-tooltip-text {
+  max-width: 24rem;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
