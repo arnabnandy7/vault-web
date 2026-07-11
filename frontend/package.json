@@ -24,6 +24,8 @@
     "@primeuix/themes": "^1.2.5",
     "@stomp/stompjs": "^7.1.1",
     "@tailwindcss/postcss": "^4.1.10",
+    "dompurify": "^3.4.11",
+    "marked": "^18.0.6",
     "ngx-toastr": "^19.1.0",
     "postcss": "^8.5.6",
     "primeicons": "^7.0.0",
